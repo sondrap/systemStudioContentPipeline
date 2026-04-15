@@ -1,29 +1,66 @@
 {
   "appId": "3e38ac84-dbb2-440c-ba20-8d74f96613f6",
-  "name": "New App",
-  "description": "An empty MindStudio App",
-  "roles": [],
+  "name": "SystemStudio Pipeline",
+  "description": "AI-powered content pipeline for researching, writing, and publishing articles",
+
+  "auth": {
+    "enabled": true,
+    "methods": ["email-code"],
+    "table": {
+      "name": "users",
+      "columns": { "email": "email", "roles": "roles" }
+    }
+  },
+
+  "roles": [
+    { "id": "admin", "name": "Administrator", "description": "Full access to all pipeline functions." }
+  ],
+
   "tables": [
-    {
-      "name": "greetings",
-      "path": "dist/methods/src/tables/default.ts",
-      "export": "Greetings"
-    }
+    { "name": "articles", "path": "dist/methods/src/tables/articles.ts", "export": "Articles" },
+    { "name": "topics", "path": "dist/methods/src/tables/topics.ts", "export": "Topics" },
+    { "name": "users", "path": "dist/methods/src/tables/users.ts", "export": "Users" }
   ],
+
   "methods": [
-    {
-      "id": "hello-world",
-      "name": "Hello World",
-      "description": "Takes a name and generates a creative AI greeting.",
-      "path": "dist/methods/src/helloWorld.ts",
-      "export": "helloWorld"
-    }
+    { "id": "get-dashboard-data", "name": "Get Dashboard Data", "path": "dist/methods/src/getDashboardData.ts", "export": "getDashboardData" },
+    { "id": "create-topic", "name": "Create Topic", "path": "dist/methods/src/createTopic.ts", "export": "createTopic" },
+    { "id": "update-topic", "name": "Update Topic", "path": "dist/methods/src/updateTopic.ts", "export": "updateTopic" },
+    { "id": "delete-topic", "name": "Delete Topic", "path": "dist/methods/src/deleteTopic.ts", "export": "deleteTopic" },
+    { "id": "start-article", "name": "Start Article", "path": "dist/methods/src/startArticle.ts", "export": "startArticle" },
+    { "id": "get-article", "name": "Get Article", "path": "dist/methods/src/getArticle.ts", "export": "getArticle" },
+    { "id": "update-article", "name": "Update Article", "path": "dist/methods/src/updateArticle.ts", "export": "updateArticle" },
+    { "id": "publish-article", "name": "Publish Article", "path": "dist/methods/src/publishArticle.ts", "export": "publishArticle" },
+    { "id": "send-back", "name": "Send Back", "path": "dist/methods/src/sendBack.ts", "export": "sendBack" },
+    { "id": "regenerate-image", "name": "Regenerate Image", "path": "dist/methods/src/regenerateImage.ts", "export": "regenerateImage" },
+    { "id": "search-web", "name": "Search Web", "path": "dist/methods/src/searchWeb.ts", "export": "searchWeb" },
+    { "id": "delete-article", "name": "Delete Article", "path": "dist/methods/src/deleteArticle.ts", "export": "deleteArticle" }
   ],
+
   "interfaces": [
+    { "type": "web", "path": "dist/interfaces/web/web.json" },
+    { "type": "agent", "path": "dist/interfaces/agent/agent.json" }
+  ],
+
+  "scenarios": [
     {
-      "type": "web",
-      "path": "dist/interfaces/web/web.json"
+      "id": "populated-pipeline",
+      "name": "Populated Pipeline",
+      "description": "Pipeline with articles in various stages and topics in backlog.",
+      "path": "dist/methods/.scenarios/populatedPipeline.ts",
+      "export": "populatedPipeline",
+      "roles": ["admin"]
+    },
+    {
+      "id": "empty-state",
+      "name": "Empty State",
+      "description": "Clean slate with no data.",
+      "path": "dist/methods/.scenarios/emptyState.ts",
+      "export": "emptyState",
+      "roles": ["admin"]
     }
   ],
-  "scenarios": []
+
+  "iconUrl": "https://i.mscdn.ai/c67801e6-77a9-48b2-9cc2-6bb5d3039ef8/generated-images/eee84c19-5df7-44c3-aeed-fc6395964065.png",
+  "openGraphShareImageUrl": "https://i.mscdn.ai/c67801e6-77a9-48b2-9cc2-6bb5d3039ef8/generated-images/196ecbf9-2cfc-49f8-a675-b82bc27b23e1.png"
 }

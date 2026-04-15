@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SystemStudio Pipeline</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=crimson-pro@200,300,400,500,600,700,800,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --midnight: #13171A;
+  --slate: #1C2228;
+  --teal: #3A8F9C;
+  --brass: #C4995A;
+  --parchment: #ECE8E1;
+  --muted: #8A9099;
+  --dim: #5A6270;
+  --border: #2A3038;
+  --success: #5BA87A;
+  --serif: 'Crimson Pro', Georgia, serif;
+  --sans: 'Geist', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+html, body {
+  height: 100svh;
+  overflow: hidden;
+  background: var(--midnight);
+  font-family: var(--sans);
+  color: var(--parchment);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.deck { display: flex; width: max-content; height: 100svh; }
+
+.slide {
+  flex: 0 0 100vw;
+  width: 100vw;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 64px 48px;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  background: var(--midnight);
+}
+
+.sc {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sc.c { align-items: center; text-align: center; }
+
+/* Typography */
+.label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 28px;
+}
+
+.giant {
+  font-family: var(--serif);
+  font-size: clamp(36px, 7vw, 80px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+
+.large {
+  font-family: var(--serif);
+  font-size: clamp(26px, 4.5vw, 52px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.med {
+  font-family: var(--serif);
+  font-size: clamp(20px, 2.8vw, 32px);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.body {
+  font-family: var(--sans);
+  font-size: clamp(15px, 1.8vw, 20px);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 600px;
+}
+
+.body.w { max-width: 680px; }
+.sc.c .body { margin-left: auto; margin-right: auto; }
+
+.t-teal { color: var(--teal); }
+.t-brass { color: var(--brass); }
+.t-dim { color: var(--dim); }
+.it { font-style: italic; }
+
+.grad {
+  background: linear-gradient(135deg, var(--teal), var(--brass));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Spacers */
+.g8 { height: 8px; }
+.g12 { height: 12px; }
+.g16 { height: 16px; }
+.g24 { height: 24px; }
+.g32 { height: 32px; }
+.g40 { height: 40px; }
+.g48 { height: 48px; }
+
+.rule { width: 48px; height: 1px; background: var(--teal); opacity: 0.4; }
+.rule.cen { margin: 0 auto; }
+
+.logo { width: 100px; height: 100px; object-fit: contain; }
+.logo.sm { width: 72px; height: 72px; }
+
+/* Glow */
+.glow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(130px);
+  opacity: 0.06;
+}
+
+/* Pipeline stages */
+.pipe {
+  display: flex;
+  width: 100%;
+  max-width: 820px;
+  position: relative;
+}
+
+.pipe::before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 12.5%;
+  right: 12.5%;
+  height: 1px;
+  background: var(--border);
+}
+
+.pipe-s {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  padding: 0 8px;
+}
+
+.pipe-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-bottom: 14px;
+}
+
+.pipe-name {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--parchment);
+  margin-bottom: 6px;
+}
+
+.pipe-desc {
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 175px;
+}
+
+/* Future grid */
+.fgrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  width: 100%;
+  max-width: 880px;
+}
+
+.fitem {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+.fnum {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--teal);
+  letter-spacing: 0.05em;
+}
+
+.ftitle {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--parchment);
+  line-height: 1.25;
+}
+
+.fdesc {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* Flywheel items */
+.fw-item {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.fw-item:last-of-type { border-bottom: none; }
+
+.fw-h {
+  font-family: var(--serif);
+  font-size: clamp(22px, 3.2vw, 34px);
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.fw-d {
+  font-family: var(--sans);
+  font-size: clamp(14px, 1.5vw, 17px);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* Progress bar */
+.progress {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  gap: 4px;
+  padding: 12px 16px;
+  z-index: 100;
+}
+
+.progress-seg {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(236,232,225,0.07);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.progress-seg .fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.progress-seg.done .fill { width: 100%; background: rgba(236,232,225,0.25); }
+.progress-seg.active .fill { width: 100%; background: rgba(58,143,156,0.6); }
+
+/* Tap zones */
+.tap-zones { position: fixed; inset: 0; display: flex; z-index: 50; }
+.tap-zone { height: 100%; -webkit-tap-highlight-color: transparent; cursor: pointer; }
+.tap-prev { width: 33.333%; }
+.tap-next { width: 66.667%; }
+
+/* Chevrons */
+.chevron {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.chevron svg {
+  width: 28px;
+  height: 28px;
+  stroke: rgba(236,232,225,0.18);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.chevron-prev { left: 16px; }
+.chevron-next { right: 16px; }
+.chevron.hidden { opacity: 0; }
+
+/* Reveal base */
+[data-reveal] { opacity: 0; }
+
+@media (max-width: 768px) {
+  .chevron { display: none; }
+  .slide { padding: 48px 24px; }
+
+  .pipe { flex-direction: column; gap: 22px; }
+  .pipe::before {
+    top: 5px; bottom: 5px; left: 4px;
+    right: auto; width: 1px; height: auto;
+  }
+  .pipe-s {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 14px;
+    text-align: left;
+    padding: 0;
+  }
+  .pipe-dot { margin-bottom: 0; margin-top: 5px; }
+  .pipe-desc { max-width: none; }
+
+  .fgrid { grid-template-columns: 1fr; gap: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  [data-reveal] { opacity: 1 !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck" id="deck">
+
+  <!-- 0: Title -->
+  <div class="slide" data-index="0">
+    <div class="glow" style="background:var(--teal);top:28%;left:50%;transform:translate(-50%,-50%)"></div>
+    <div class="sc c">
+      <img data-reveal class="logo" src="https://i.mscdn.ai/c67801e6-77a9-48b2-9cc2-6bb5d3039ef8/generated-images/eee84c19-5df7-44c3-aeed-fc6395964065.png?w=300" width="100" height="100" alt="SystemStudio Pipeline">
+      <div class="g32"></div>
+      <h1 data-reveal class="large">SystemStudio Pipeline</h1>
+      <div class="g16"></div>
+      <div data-reveal class="rule cen"></div>
+      <div class="g16"></div>
+      <p data-reveal class="body">The editorial intelligence system for serious AI content.</p>
+    </div>
+  </div>
+
+  <!-- 1: Problem -->
+  <div class="slide" data-index="1">
+    <div class="sc">
+      <div data-reveal class="label">The Problem</div>
+      <h2 data-reveal class="giant">The bottleneck isn't talent.</h2>
+      <div class="g8"></div>
+      <h2 data-reveal="0.18" class="giant t-brass">It's throughput.</h2>
+      <div class="g32"></div>
+      <p data-reveal="0.38" class="body w">Research takes hours. Keeping voice consistent at scale is hard. The gap between &ldquo;I have an idea&rdquo; and &ldquo;it&rsquo;s live on the internet&rdquo; is wide enough to kill momentum.</p>
+    </div>
+  </div>
+
+  <!-- 2: Insight -->
+  <div class="slide" data-index="2">
+    <div class="sc c">
+      <div data-reveal class="label">The Insight</div>
+      <h2 data-reveal class="large">Most AI content tools are built for volume.</h2>
+      <div class="g16"></div>
+      <h2 data-reveal="0.15" class="large it t-brass">Sondra needs one built for her.</h2>
+      <div class="g32"></div>
+      <p data-reveal="0.35" class="body">Her voice, her sources, her knowledge base&thinsp;&mdash;&thinsp;that&rsquo;s a moat. The system should treat it that way.</p>
+    </div>
+  </div>
+
+  <!-- 3: What It Is -->
+  <div class="slide" data-index="3">
+    <div class="glow" style="background:var(--brass);top:45%;right:5%;transform:translate(0,-50%)"></div>
+    <div class="sc c">
+      <div data-reveal class="label">The System</div>
+      <h2 data-reveal class="giant" style="max-width:800px">A private editorial command center.</h2>
+      <div class="g48"></div>
+      <p data-reveal="0.2" class="med t-teal">From idea to draft: fully automated.</p>
+      <div class="g12"></div>
+      <p data-reveal="0.32" class="med t-brass">From draft to published: Sondra decides.</p>
+    </div>
+  </div>
+
+  <!-- 4: Pipeline -->
+  <div class="slide" data-index="4">
+    <div class="sc c">
+      <div data-reveal class="label">The Pipeline</div>
+      <h2 data-reveal class="large" style="margin-bottom:48px">Four stages. Fully operational.</h2>
+      <div class="pipe">
+        <div data-reveal class="pipe-s">
+          <div class="pipe-dot" style="background:var(--teal)"></div>
+          <div>
+            <div class="pipe-name">Research</div>
+            <div class="pipe-desc">AI agents scan trusted sources. Five deeply understood sources beat twenty shallow ones.</div>
+          </div>
+        </div>
+        <div data-reveal class="pipe-s">
+          <div class="pipe-dot" style="background:var(--muted)"></div>
+          <div>
+            <div class="pipe-name">Drafting</div>
+            <div class="pipe-desc">A writing agent that knows her voice drafts the article. Hero image generates in parallel.</div>
+          </div>
+        </div>
+        <div data-reveal class="pipe-s">
+          <div class="pipe-dot" style="background:var(--brass)"></div>
+          <div>
+            <div class="pipe-name">Review</div>
+            <div class="pipe-desc">Premium reading environment. Edit inline, approve or send back with notes.</div>
+          </div>
+        </div>
+        <div data-reveal class="pipe-s">
+          <div class="pipe-dot" style="background:var(--success)"></div>
+          <div>
+            <div class="pipe-name">Published</div>
+            <div class="pipe-desc">One click to her site via API. From idea to internet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5: Agent -->
+  <div class="slide" data-index="5">
+    <div class="sc c">
+      <div data-reveal class="label">The Editorial Agent</div>
+      <h2 data-reveal class="giant t-dim">Not a chatbot.</h2>
+      <div class="g8"></div>
+      <h2 data-reveal="0.22" class="giant">A colleague.</h2>
+      <div class="g32"></div>
+      <p data-reveal="0.45" class="body w">Someone who&rsquo;s read Latent Space, follows the LangChain repo, and has actual opinions about where RAG is going. She can brainstorm topics, request research, talk through an angle&thinsp;&mdash;&thinsp;and the agent acts on it.</p>
+    </div>
+  </div>
+
+  <!-- 6: Flywheel -->
+  <div class="slide" data-index="6">
+    <div class="sc" style="max-width:740px">
+      <div data-reveal class="label">The Flywheel</div>
+      <div data-reveal="0" class="fw-item">
+        <div class="fw-h">The <span class="t-brass">articles</span> get better.</div>
+        <div class="fw-d">The system learns from her feedback on every draft.</div>
+      </div>
+      <div data-reveal="0.12" class="fw-item">
+        <div class="fw-h">The <span class="t-brass">topics</span> get sharper.</div>
+        <div class="fw-d">Performance data feeds smarter recommendations.</div>
+      </div>
+      <div data-reveal="0.24" class="fw-item">
+        <div class="fw-h">The <span class="t-brass">voice</span> gets more precise.</div>
+        <div class="fw-d">It accumulates more of her writing with every article.</div>
+      </div>
+      <div class="g40"></div>
+      <p data-reveal="0.55" class="med it t-teal" style="max-width:600px">This is not a content tool. It is a compounding content operation.</p>
+    </div>
+  </div>
+
+  <!-- 7: What's Next -->
+  <div class="slide" data-index="7">
+    <div class="sc c">
+      <div data-reveal class="label">What&rsquo;s Next</div>
+      <div class="g8"></div>
+      <div class="fgrid">
+        <div data-reveal class="fitem">
+          <div class="fnum">01</div>
+          <div class="ftitle">Always-On Research</div>
+          <div class="fdesc">Every morning, the system scans her source network and surfaces what&rsquo;s worth writing about&thinsp;&mdash;&thinsp;before she opens her laptop.</div>
+        </div>
+        <div data-reveal class="fitem">
+          <div class="fnum">02</div>
+          <div class="ftitle">Reach Multiplier</div>
+          <div class="fdesc">One research brief generates blog, LinkedIn, newsletter, and Twitter thread. Each native to its platform, all in her voice.</div>
+        </div>
+        <div data-reveal class="fitem">
+          <div class="fnum">03</div>
+          <div class="ftitle">Performance Intelligence</div>
+          <div class="fdesc">Reads, engagement, traffic sources. Data that feeds back into topic recommendations. The flywheel turns.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8: Closing -->
+  <div class="slide" data-index="8">
+    <div class="glow" style="background:var(--teal);top:30%;left:47%;transform:translate(-50%,-50%)"></div>
+    <div class="glow" style="background:var(--brass);top:44%;left:56%;transform:translate(-50%,-50%)"></div>
+    <div class="sc c">
+      <img data-reveal class="logo sm" src="https://i.mscdn.ai/c67801e6-77a9-48b2-9cc2-6bb5d3039ef8/generated-images/eee84c19-5df7-44c3-aeed-fc6395964065.png?w=216" width="72" height="72" alt="">
+      <div class="g32"></div>
+      <h2 data-reveal="0.12" class="giant it" style="max-width:700px">Built for exactly one person.</h2>
+      <div class="g24"></div>
+      <div data-reveal="0.3" class="rule cen"></div>
+      <div class="g24"></div>
+      <p data-reveal="0.48" class="large grad">SystemStudio Pipeline</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="tap-zones">
+  <div class="tap-zone tap-prev" id="tapPrev"></div>
+  <div class="tap-zone tap-next" id="tapNext"></div>
+</div>
+
+<div class="chevron chevron-prev hidden" id="chevronPrev">
+  <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+</div>
+<div class="chevron chevron-next" id="chevronNext">
+  <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"></polyline></svg>
+</div>
+
+<script>
+(function() {
+  var deck = document.getElementById('deck');
+  var slides = document.querySelectorAll('.slide');
+  var totalSlides = slides.length;
+  var current = 0;
+  var isAnimating = false;
+
+  var tapPrev = document.getElementById('tapPrev');
+  var tapNext = document.getElementById('tapNext');
+  var progress = document.getElementById('progress');
+  var chevronPrev = document.getElementById('chevronPrev');
+  var chevronNext = document.getElementById('chevronNext');
+
+  for (var i = 0; i < totalSlides; i++) {
+    var seg = document.createElement('div');
+    seg.className = 'progress-seg' + (i === 0 ? ' active' : '');
+    seg.innerHTML = '<div class="fill"></div>';
+    (function(idx) { seg.addEventListener('click', function() { goTo(idx); }); })(i);
+    progress.appendChild(seg);
+  }
+
+  function updateNav() {
+    var segs = progress.querySelectorAll('.progress-seg');
+    for (var i = 0; i < segs.length; i++) {
+      segs[i].classList.toggle('done', i < current);
+      segs[i].classList.toggle('active', i === current);
+    }
+    chevronPrev.classList.toggle('hidden', current === 0);
+    chevronNext.classList.toggle('hidden', current === totalSlides - 1);
+  }
+
+  var revealed = {};
+  function revealSlide(index) {
+    if (revealed[index]) return;
+    revealed[index] = true;
+    var els = slides[index].querySelectorAll('[data-reveal]');
+    for (var i = 0; i < els.length; i++) {
+      var delay = (parseFloat(els[i].dataset.reveal) || 0) + i * 0.04;
+      gsap.fromTo(els[i],
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.5, delay: delay, ease: 'power2.out' }
+      );
+    }
+  }
+
+  function goTo(index) {
+    if (index === current || isAnimating || index < 0 || index >= totalSlides) return;
+    isAnimating = true;
+    current = index;
+    updateNav();
+    gsap.to(deck, {
+      x: -current * window.innerWidth,
+      duration: 0.4,
+      ease: 'power2.inOut',
+      onComplete: function() {
+        revealSlide(current);
+        isAnimating = false;
+      }
+    });
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goTo(current - 1); }
+  });
+
+  tapPrev.addEventListener('click', function() { goTo(current - 1); });
+  tapNext.addEventListener('click', function() { goTo(current + 1); });
+
+  var touchStartX = 0;
+  var touchStartY = 0;
+  document.addEventListener('touchstart', function(e) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', function(e) {
+    var dx = e.changedTouches[0].clientX - touchStartX;
+    var dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+    if (dx < 0) goTo(current + 1);
+    else goTo(current - 1);
+  }, { passive: true });
+
+  var resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() { gsap.set(deck, { x: -current * window.innerWidth }); }, 100);
+  });
+
+  gsap.set(deck, { x: 0 });
+  updateNav();
+  revealed[0] = true;
+  var firstEls = slides[0].querySelectorAll('[data-reveal]');
+  for (var i = 0; i < firstEls.length; i++) { firstEls[i].style.opacity = '1'; }
+})();
+</script>
+
+</body>
+</html>

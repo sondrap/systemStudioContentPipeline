@@ -1,5 +1,45 @@
 {
-  "pitch": "pitch.html",
-  "lanes": [],
-  "standalone": []
+  "pitch": "src/roadmap/pitch.html",
+  "lanes": [
+    {
+      "name": "Always-On Research",
+      "narrative": "The pipeline starts working before Sondra opens her laptop — scanning sources, surfacing signal, and building a searchable intelligence base that compounds over time.",
+      "items": [
+        "source-feed-scanner.md",
+        "proactive-topic-radar.md",
+        "research-archive.md"
+      ]
+    },
+    {
+      "name": "Voice as a Moat",
+      "narrative": "The more Sondra uses the pipeline, the more precisely it captures her voice and the smarter it becomes about how her content performs against the competition.",
+      "items": [
+        "voice-training-studio.md",
+        "seo-intelligence.md"
+      ]
+    },
+    {
+      "name": "Reach Multiplier",
+      "narrative": "One research pass, every format and platform it needs to land on — from LinkedIn posts to newsletter editions to a fully-owned public blog.",
+      "items": [
+        "linkedin-cross-post.md",
+        "multi-format-studio.md",
+        "built-in-newsletter.md",
+        "canonical-blog.md"
+      ]
+    },
+    {
+      "name": "Strategic Command",
+      "narrative": "From reactive writing to intentional content strategy — plan arcs, schedule publishing, and close the loop with performance data that shapes what gets written next.",
+      "items": [
+        "content-calendar.md",
+        "scheduled-publishing.md",
+        "content-series.md",
+        "performance-intelligence.md"
+      ]
+    }
+  ],
+  "standalone": [
+    "mvp.md"
+  ]
 }

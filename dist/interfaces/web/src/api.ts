@@ -1,5 +1,63 @@
 import { createClient } from '@mindstudio-ai/interface';
 
-const api = createClient();
+export type ArticleStatus = 'researching' | 'drafting' | 'review' | 'published';
+export type ArticleType = 'thought-leadership' | 'educational' | 'commentary' | 'mixed';
 
-export default api;
+export interface Article {
+  id: string;
+  title: string;
+  subtitle?: string;
+  slug?: string;
+  body?: string;
+  excerpt?: string;
+  status: ArticleStatus;
+  topicId?: string;
+  researchBrief?: {
+    summary: string;
+    keyFindings: string[];
+    sources: { url: string; title: string; relevance: string }[];
+    quotes: { text: string; attribution: string }[];
+  };
+  imageUrl?: string;
+  seoKeywords?: string[];
+  metaDescription?: string;
+  ogDescription?: string;
+  revisionNotes?: string;
+  publishedAt?: number;
+  publishedUrl?: string;
+  wordCount?: number;
+  articleType?: ArticleType;
+  tags?: string[];
+  coverImageAlt?: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface Topic {
+  id: string;
+  title: string;
+  description?: string;
+  sourceUrls?: string[];
+  priority: 'high' | 'normal';
+  status: 'backlog' | 'in-pipeline';
+  articleId?: string;
+  suggestedBy: 'agent' | 'manual';
+  reasoning?: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export const api = createClient<{
+  getDashboardData(): Promise<{ articles: Article[]; topics: Topic[] }>;
+  createTopic(input: { title: string; description?: string; sourceUrls?: string[]; priority?: 'high' | 'normal' }): Promise<{ topic: Topic }>;
+  updateTopic(input: { id: string; title?: string; description?: string; sourceUrls?: string[]; priority?: 'high' | 'normal' }): Promise<{ topic: Topic }>;
+  deleteTopic(input: { id: string }): Promise<{ deleted: boolean }>;
+  startArticle(input: { topicId?: string; title?: string; description?: string; articleType?: ArticleType }): Promise<{ article: Article }>;
+  getArticle(input: { id: string }): Promise<{ article: Article }>;
+  updateArticle(input: { id: string; title?: string; body?: string; excerpt?: string; status?: ArticleStatus; seoKeywords?: string[]; tags?: string[]; articleType?: ArticleType }): Promise<{ article: Article }>;
+  publishArticle(input: { id: string }): Promise<{ article: Article }>;
+  sendBack(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;
+  regenerateImage(input: { id: string }): Promise<{ article: Article }>;
+  searchWeb(input: { query: string }): Promise<{ results: any[] }>;
+  deleteArticle(input: { id: string }): Promise<{ deleted: boolean }>;
+}>();

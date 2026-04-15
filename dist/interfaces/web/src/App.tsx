@@ -1,134 +1,51 @@
-import { useRef, useState, useCallback } from 'react';
-import { create } from 'zustand';
-import api from './api';
-import styles from './App.module.css';
-
-interface Greeting {
-  id: string;
-  name: string;
-  greeting: string;
-}
-
-// ---------------------------------------------------------------------------
-// Global store
-// ---------------------------------------------------------------------------
-
-interface Store {
-  greetings: Greeting[];
-  addGreeting: (greeting: Greeting) => void;
-}
-
-const useStore = create<Store>((set) => ({
-  greetings: [],
-  addGreeting: (greeting) =>
-    set((state) => ({ greetings: [greeting, ...state.greetings] })),
-}));
-
-// ---------------------------------------------------------------------------
-// App
-// ---------------------------------------------------------------------------
+import { useEffect } from 'react';
+import { Route, Switch, useLocation, Redirect } from 'wouter';
+import { useAuth } from './useAuth';
+import { useStore } from './store';
+import { Layout } from './components/Layout';
+import { LoginPage } from './pages/LoginPage';
+import { PipelinePage } from './pages/PipelinePage';
+import { ArticlePage } from './pages/ArticlePage';
+import { ChatPage } from './pages/ChatPage';
+import { BacklogPage } from './pages/BacklogPage';
+import './theme.css';
 
 export default function App() {
-  const [name, setName] = useState('');
-  const [streamText, setStreamText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const greetings = useStore((s) => s.greetings);
-  const addGreeting = useStore((s) => s.addGreeting);
+  const { user, loading: authLoading } = useAuth();
+  const loadData = useStore((s) => s.loadData);
+  const dataLoading = useStore((s) => s.loading);
+  const [location] = useLocation();
 
-  const handleSubmit = useCallback(async () => {
-    const trimmed = name.trim();
-    if (!trimmed || isLoading) return;
-
-    setIsLoading(true);
-    setStreamText('');
-    try {
-      const result = (await api.helloWorld(
-        { name: trimmed },
-        {
-          stream: true,
-          onToken: (text: string) => setStreamText(text),
-        },
-      )) as Greeting;
-
-      addGreeting(result);
-      setStreamText('');
-      setName('');
-      inputRef.current?.focus();
-    } finally {
-      setIsLoading(false);
-      setStreamText('');
+  // Load pipeline data after auth
+  useEffect(() => {
+    if (user) {
+      loadData();
     }
-  }, [name, isLoading, addGreeting]);
+  }, [user, loadData]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSubmit();
-  };
+  // Auth loading state
+  if (authLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'var(--bg)' }}>
+        <div className="skeleton" style={{ width: 200, height: 20 }} />
+      </div>
+    );
+  }
 
-  const allItems = [
-    ...(isLoading && streamText
-      ? [
-          {
-            id: '_stream',
-            name: name.trim(),
-            greeting: streamText,
-            isStreaming: true,
-          },
-        ]
-      : []),
-    ...greetings.map((g) => ({ ...g, isStreaming: false })),
-  ];
+  // Not authenticated: show login
+  if (!user) {
+    return <LoginPage />;
+  }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.content}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>Hello World</h1>
-          <p className={styles.subtitle}>AI-powered greetings</p>
-        </div>
-
-        <div className={styles.inputArea}>
-          <input
-            ref={inputRef}
-            className={styles.nameInput}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter your name"
-            disabled={isLoading}
-            autoFocus
-          />
-          <button
-            className={styles.submitButton}
-            onClick={handleSubmit}
-            disabled={!name.trim() || isLoading}
-            data-loading={isLoading || undefined}
-          >
-            {isLoading ? 'Thinking...' : 'Say Hello'}
-          </button>
-        </div>
-
-        {allItems.length > 0 ? (
-          <div className={styles.listSection}>
-            {allItems.map((item, i) => (
-              <div key={item.id}>
-                {i > 0 && <div className={styles.divider} />}
-                <div className={styles.card}>
-                  <p className={styles.cardGreeting}>
-                    {item.greeting}
-                    {item.isStreaming && (
-                      <span className={styles.streamingDot} />
-                    )}
-                  </p>
-                  <p className={styles.cardName}>{item.name}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className={styles.emptyState}>No greetings yet</div>
-        )}
-      </div>
-    </div>
+    <Layout>
+      <Switch>
+        <Route path="/" component={PipelinePage} />
+        <Route path="/articles/:id" component={ArticlePage} />
+        <Route path="/chat" component={ChatPage} />
+        <Route path="/backlog" component={BacklogPage} />
+        <Route><Redirect to="/" /></Route>
+      </Switch>
+    </Layout>
   );
 }
