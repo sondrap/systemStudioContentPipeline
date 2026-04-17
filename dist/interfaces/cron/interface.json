@@ -1,9 +1,9 @@
 {
   "jobs": [
     {
-      "schedule": "0 12 * * 1,4",
+      "schedule": "0 12 * * *",
       "method": "scan-topics",
-      "description": "Scan for trending topics every Monday and Thursday at 7am CT (12:00 UTC)"
+      "description": "Scan for trending topics every day at 7am CT (12:00 UTC)"
     }
   ]
 }
