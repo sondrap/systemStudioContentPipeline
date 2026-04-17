@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useStore } from '../store';
 import { api, Article } from '../api';
-import { IconArrowLeft, IconLoader2, IconCheck, IconExternalLink, IconPhoto, IconTrash, IconPencil, IconHighlight, IconUsers, IconEye, IconCode } from '@tabler/icons-react';
+import { IconArrowLeft, IconLoader2, IconCheck, IconExternalLink, IconPhoto, IconTrash, IconPencil, IconHighlight, IconUsers, IconEye, IconCode, IconCloudOff } from '@tabler/icons-react';
 import { Streamdown } from 'streamdown';
 import { SeoPanel } from '../components/SeoPanel';
 import { SeoCritiquePanel } from '../components/SeoCritiquePanel';
@@ -42,6 +42,8 @@ export function ArticlePage() {
   const [regenerating, setRegenerating] = useState(false);
   const [confirmDeleteArticle, setConfirmDeleteArticle] = useState(false);
   const [deletingArticle, setDeletingArticle] = useState(false);
+  const [confirmUnpublish, setConfirmUnpublish] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
   const [highlightKeywords, setHighlightKeywords] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -148,6 +150,33 @@ export function ArticlePage() {
       alert(err.message || 'Delete failed.');
       setDeletingArticle(false);
       setConfirmDeleteArticle(false);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    if (!articleId) return;
+    if (!confirmUnpublish) {
+      setConfirmUnpublish(true);
+      return;
+    }
+    setUnpublishing(true);
+    try {
+      const result = await api.unpublishArticle({ id: articleId });
+      // Update local state so the button flips back to "Approve & Publish"
+      if (result.article) {
+        updateArticleLocal(articleId, {
+          status: result.article.status,
+          publishedAt: result.article.publishedAt,
+          publishedUrl: result.article.publishedUrl,
+        });
+        setPublished(false);
+      }
+      setConfirmUnpublish(false);
+    } catch (err: any) {
+      alert(err.message || 'Unpublish failed. Check the logs for details.');
+      setConfirmUnpublish(false);
+    } finally {
+      setUnpublishing(false);
     }
   };
 
@@ -524,9 +553,42 @@ export function ArticlePage() {
           )}
 
           {published && (
-            <div className="btn btn-primary" style={{ width: '100%', background: '#57726720', color: 'var(--success)', cursor: 'default', justifyContent: 'center' }}>
-              <IconCheck size={16} /> Published
-            </div>
+            <>
+              <div className="btn btn-primary" style={{
+                width: '100%',
+                background: '#57726720',
+                color: 'var(--success)',
+                cursor: 'default',
+                justifyContent: 'center',
+                minHeight: 40,
+              }}>
+                <IconCheck size={16} /> Published
+              </div>
+              <button
+                onClick={handleUnpublish}
+                onMouseLeave={() => { if (confirmUnpublish && !unpublishing) setConfirmUnpublish(false); }}
+                disabled={unpublishing}
+                style={{
+                  width: '100%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  border: `1px solid ${confirmUnpublish ? '#C25D42' : 'var(--border)'}`,
+                  background: confirmUnpublish ? '#C25D4210' : 'transparent',
+                  color: confirmUnpublish ? '#C25D42' : 'var(--text-secondary)',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: unpublishing ? 'wait' : 'pointer',
+                  transition: 'all 150ms',
+                }}
+              >
+                {unpublishing
+                  ? <><IconLoader2 size={14} className="spinner" /> Unpublishing...</>
+                  : confirmUnpublish
+                    ? <>Click again to remove from site</>
+                    : <><IconCloudOff size={14} stroke={1.5} /> Unpublish from site</>}
+              </button>
+            </>
           )}
 
           {showSendBack && (
@@ -572,7 +634,13 @@ export function ArticlePage() {
             }}
           >
             <IconTrash size={14} stroke={1.5} />
-            {deletingArticle ? 'Deleting...' : confirmDeleteArticle ? 'Confirm delete' : 'Delete article'}
+            {deletingArticle
+              ? 'Deleting...'
+              : confirmDeleteArticle
+                ? (published
+                    ? 'Click again — note: this will NOT remove from your site'
+                    : 'Click again to delete')
+                : 'Delete from pipeline'}
           </button>
         </div>
       </div>

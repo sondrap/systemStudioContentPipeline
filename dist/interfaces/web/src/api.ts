@@ -76,6 +76,7 @@ export const api = createClient<{
   getArticle(input: { id: string }): Promise<{ article: Article }>;
   updateArticle(input: { id: string; title?: string; body?: string; excerpt?: string; status?: ArticleStatus; seoKeywords?: string[]; tags?: string[]; articleType?: ArticleType; focusKeyword?: string; ogDescription?: string; slug?: string }): Promise<{ article: Article }>;
   publishArticle(input: { id: string }): Promise<{ article: Article }>;
+  unpublishArticle(input: { id: string }): Promise<{ article: Article; dryRun?: boolean; wasAlreadyMissing?: boolean }>;
   sendBack(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;
   regenerateImage(input: { id: string }): Promise<{ article: Article }>;
   reviewSeo(input: { id: string }): Promise<{ article: Article; critique: Article['seoCritique'] }>;
