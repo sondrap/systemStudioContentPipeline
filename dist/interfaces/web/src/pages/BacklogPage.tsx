@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import { api, Topic } from '../api';
-import { IconPlus, IconSearch, IconArchive, IconLoader2, IconDots, IconRocket, IconTrash, IconRadar2, IconCompass, IconCheck, IconRefresh, IconTrendingUp, IconKey } from '@tabler/icons-react';
+import { IconPlus, IconSearch, IconArchive, IconLoader2, IconDots, IconRocket, IconTrash, IconRadar2, IconCompass, IconCheck, IconRefresh, IconTrendingUp, IconKey, IconBolt, IconSend } from '@tabler/icons-react';
 import { useLocation } from 'wouter';
 
 function formatDate(ts?: number) {
@@ -238,6 +238,14 @@ export function BacklogPage() {
               }}
             />
           </div>
+        </div>
+
+        {/* Quick Capture — paste a URL or a sentence, pipeline researches and frames it */}
+        <div style={{ padding: '0 24px 16px' }}>
+          <QuickCapture onCaptured={(topic) => {
+            // Optimistically add the new topic to the top of the list
+            addTopic(topic);
+          }} />
         </div>
 
         {/* List */}
@@ -538,5 +546,98 @@ function SeoOpportunityBadge({ level, detailed }: { level: 'high' | 'moderate' |
     }}>
       {level === 'high' ? 'SEO↑' : level === 'moderate' ? 'SEO~' : 'SEO↓'}
     </span>
+  );
+}
+
+// Quick Capture — lightweight input for pasting a URL or a sentence. The
+// pipeline researches it, frames it for the ICP, and drops a fully-prepared
+// topic in the backlog. Complement to the deliberate "Add Topic" form.
+function QuickCapture({ onCaptured }: { onCaptured: (topic: Topic) => void }) {
+  const [value, setValue] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    if (!value.trim() || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { topic } = await api.captureQuickTopic({ rawInput: value.trim() });
+      onCaptured(topic);
+      setValue('');
+    } catch (err: any) {
+      setError(err?.message || 'Capture failed. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '10px 12px',
+        border: '1px solid var(--border)',
+        borderRadius: 12,
+        background: 'var(--surface)',
+        transition: 'border-color 150ms',
+      }}>
+        <IconBolt size={14} stroke={1.8} color="var(--accent)" style={{ flexShrink: 0 }} />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          disabled={loading}
+          placeholder="Heard something? Paste a URL or a sentence and I'll research + frame it for your audience."
+          style={{
+            flex: 1,
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            fontSize: 13,
+            color: 'var(--text-primary)',
+            opacity: loading ? 0.6 : 1,
+          }}
+        />
+        <button
+          onClick={submit}
+          disabled={!value.trim() || loading}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '4px 12px',
+            borderRadius: 6,
+            border: 'none',
+            background: value.trim() && !loading ? 'var(--deep-current, #365367)' : 'var(--surface-hover)',
+            color: value.trim() && !loading ? 'white' : 'var(--text-tertiary)',
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: value.trim() && !loading ? 'pointer' : 'default',
+            transition: 'all 150ms',
+          }}
+        >
+          {loading
+            ? <><IconLoader2 size={12} className="spinner" /> Capturing...</>
+            : <><IconSend size={12} stroke={2} /> Capture</>}
+        </button>
+      </div>
+      {error && (
+        <div style={{ fontSize: 12, color: '#C25D42', marginTop: 6, paddingLeft: 4 }}>
+          {error}
+        </div>
+      )}
+      {loading && (
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, paddingLeft: 4, fontStyle: 'italic' }}>
+          Researching and framing for your audience. Usually takes 10-20 seconds.
+        </div>
+      )}
+    </div>
   );
 }

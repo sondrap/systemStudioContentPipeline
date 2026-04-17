@@ -42,6 +42,24 @@ These are where the ICP actually hangs out. When scanning for topics, these shou
 - Objections that come up in sales conversations. Objections are content.
 - The frustrations clients vent about at the start of meetings before the "real" agenda starts.
 
+## Priority Model Labs (Check Every Scan)
+
+These are the sources the scanner MUST check every time it runs, regardless of what else it finds. When one of these labs ships something new, her audience hears about it within hours on LinkedIn and in podcasts. They want her take, framed for them.
+
+- **Anthropic** — `anthropic.com/news`, `claude.com/blog`, their Twitter/X account. Claude and Claude Code releases, new Claude features like Design, pricing changes, enterprise announcements. Sondra uses Claude, her audience knows she uses Claude, so Anthropic releases are especially on-brand for her blog.
+- **OpenAI** — `openai.com/blog`, `openai.com/news`, their Twitter/X account. ChatGPT product updates, GPT model releases, pricing shifts, ChatGPT Business announcements, ChatGPT Atlas browser, and anything that changes what ChatGPT can do for small businesses.
+- **Google DeepMind / Gemini** — `blog.google/technology/ai`, `deepmind.google/discover`. Gemini releases, Google Workspace AI features (Gemini in Gmail, Docs, Sheets), NotebookLM updates.
+- **Meta AI** — Meta's AI product releases, especially anything that touches Instagram, WhatsApp, or small-business features.
+
+**How to use these sources:**
+
+1. On every scan, spend the first pass checking if any of these labs shipped something in the last 14 days.
+2. For each release, ask: "would this affect how my ICP does their job, spends their money, or thinks about AI?" Even if the answer is "only tangentially," propose an explainer topic framed in founder language.
+3. Mark major releases (entirely new products, significant pricing changes, new product tiers) as `priority: 'high'`.
+4. Reframe the release in the ICP's terms. Not "Anthropic launches Claude Design" but "The New Claude Tool That Turns Your Ideas Into Designs Without Hiring a Designer."
+
+The goal: when something big drops, Sondra's article is in the backlog within 24 hours so she can write the take her audience is looking for while the news is still fresh.
+
 ## Signal Sources (Secondary)
 
 These tell us what is genuinely new or shifting in the AI world. Useful for surfacing "something real is happening here" moments, but must always be translated through the audience lens before becoming a topic. Raw signal content is not for the ICP.

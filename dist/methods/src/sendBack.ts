@@ -2,6 +2,7 @@ import { auth, mindstudio } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
 import { VOICE_PROFILE, AUDIENCE_PROFILE } from './common/voiceProfile';
 import { reviewSeoCritique } from './common/seoCritique';
+import { reviewDraftCritique } from './common/draftCritique';
 
 export async function sendBack(input: { id: string; revisionNotes: string }) {
   auth.requireRole('admin');
@@ -88,22 +89,37 @@ Output ONLY the revised article body in markdown. No preamble, no explanation.`,
     revisionNotes: undefined,
   });
 
-  console.log(`[${articleId}] Rewrite complete (${wordCount} words). Running SEO critique...`);
+  console.log(`[${articleId}] Rewrite complete (${wordCount} words). Running critiques...`);
 
-  // Run a fresh SEO critique on the revised article. Don't block the user —
-  // run it as a follow-up so they can start reading while the critique updates.
-  try {
-    const critique = await reviewSeoCritique({
+  // Run fresh SEO and draft critiques in parallel on the revised article.
+  // They're independent, so doing them together saves the user ~20 seconds.
+  const [seoResult, draftResult] = await Promise.all([
+    reviewSeoCritique({
       title: article.title,
       body: content,
       excerpt: article.excerpt || '',
       focusKeyword: article.focusKeyword || '',
       metaDescription: article.ogDescription || article.metaDescription || '',
       competitorInsights: article.researchBrief?.competitorInsights,
-    });
-    await Articles.update(articleId, { seoCritique: critique });
-    console.log(`[${articleId}] SEO critique refreshed: ${critique.issues.length} issues.`);
-  } catch (err) {
-    console.error(`[${articleId}] SEO critique refresh failed:`, err);
+    }).catch(err => {
+      console.error(`[${articleId}] SEO critique refresh failed:`, err);
+      return null;
+    }),
+    reviewDraftCritique({
+      title: article.title,
+      body: content,
+      excerpt: article.excerpt || '',
+    }).catch(err => {
+      console.error(`[${articleId}] Draft critique refresh failed:`, err);
+      return null;
+    }),
+  ]);
+
+  const critiqueUpdates: any = {};
+  if (seoResult) critiqueUpdates.seoCritique = seoResult;
+  if (draftResult) critiqueUpdates.draftCritique = draftResult;
+  if (Object.keys(critiqueUpdates).length > 0) {
+    await Articles.update(articleId, critiqueUpdates);
+    console.log(`[${articleId}] Critiques refreshed. SEO: ${seoResult?.issues.length ?? 'failed'}. Draft: ${draftResult?.issues.length ?? 'failed'}.`);
   }
 }

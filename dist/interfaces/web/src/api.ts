@@ -46,6 +46,16 @@ export interface Article {
     }>;
     generatedAt: number;
   };
+  draftCritique?: {
+    overallAssessment: string;
+    issues: Array<{
+      severity: 'critical' | 'should-fix' | 'nice-to-have';
+      area: 'opening-hook' | 'audience-fit' | 'voice-consistency' | 'section-focus' | 'flow' | 'closing-payoff';
+      issue: string;
+      suggestion: string;
+    }>;
+    generatedAt: number;
+  };
   created_at: number;
   updated_at: number;
 }
@@ -80,6 +90,9 @@ export const api = createClient<{
   sendBack(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;
   regenerateImage(input: { id: string }): Promise<{ article: Article }>;
   reviewSeo(input: { id: string }): Promise<{ article: Article; critique: Article['seoCritique'] }>;
+  reviewDraft(input: { id: string }): Promise<{ article: Article; critique: Article['draftCritique'] }>;
+  captureQuickTopic(input: { rawInput: string }): Promise<{ topic: Topic }>;
+  importPublishedArticles(): Promise<{ totalOnSite: number; imported: number; skipped: number; failed: number; details: any }>;
   searchWeb(input: { query: string }): Promise<{ results: any[] }>;
   deleteArticle(input: { id: string }): Promise<{ deleted: boolean }>;
   scanTopics(): Promise<{ status: string }>;

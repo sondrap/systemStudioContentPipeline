@@ -84,17 +84,26 @@ Would a stressed-out non-technical founder, reading this at 11pm on their phone,
 
 export const IMAGE_STYLE_ANCHOR = `Soft-focus editorial still life composition in a painterly, slightly impressionistic rendering style, clearly not a photograph but evocative of one. Objects arranged on a pale linen surface (#F7F4F2). Soft directional window light from the upper left, casting long gentle shadows. Shallow depth of field with the background dissolving into a warm creamy blur. Color palette strictly restricted to: deep muted teal (#365367), sage green (#577267), blush pink (#ECD8DC), pale blue (#D4E4F1), warm linen white (#F7F4F2), and natural brass/gold. Premium editorial magazine aesthetic. Matte surfaces, no gloss. Generous negative space. Horizontal composition. No text, no screens, no devices, no human figures.`;
 
-// Research sources organized into two buckets: audience sources (where the ICP
-// hangs out, what they're asking) and signal sources (what's new in AI).
-// The best topics sit at the intersection of these two.
+// Research sources organized into three buckets: priority model labs (ALWAYS
+// checked each scan), audience sources (where the ICP hangs out), and signal
+// sources (what's new in AI broadly). The best topics sit at the intersection
+// of signal and audience pain.
 export const RESEARCH_SOURCES = `
+**PRIORITY MODEL LABS (check EVERY scan, these can become standalone "here's what just happened" topics):**
+- Anthropic: anthropic.com/news, claude.com/blog, their Twitter/X. Claude + Claude Code releases, new features like Design, pricing changes, enterprise announcements. Sondra uses Claude and her audience knows it, so these are especially on-brand.
+- OpenAI: openai.com/blog, openai.com/news, their Twitter/X. ChatGPT product updates, GPT model releases, pricing, Business announcements, Atlas browser, anything that changes what ChatGPT can do for small businesses.
+- Google DeepMind / Gemini: blog.google/technology/ai, deepmind.google/discover. Gemini releases, Google Workspace AI (Gmail, Docs, Sheets), NotebookLM updates.
+- Meta AI: Meta AI product releases, especially in Instagram, WhatsApp, or small-business features.
+
+On every scan: first pass checks if any of these labs shipped something in the last 14 days. For each release, ask "would this affect how my ICP does their job, spends money, or thinks about AI?" If yes, even tangentially, propose an explainer topic framed in founder language. Major releases should be priority: 'high'. Reframe titles in ICP language: not "Anthropic launches Claude Design" but "The New Claude Tool That Turns Your Ideas Into Designs Without Hiring a Designer."
+
 **AUDIENCE sources (primary) — where the ICP actually hangs out and asks questions in their own language:**
 - Reddit: r/Entrepreneur, r/Entrepreneurs, r/smallbusiness, r/AiForSmallBusiness, r/automation, r/startups, r/solopreneur
 - LinkedIn: non-technical founder voices, SMB operators sharing AI wins/failures, consultants serving the same ICP
 - Founder podcasts (non-AI-specific): Indie Hackers, My First Million, Startups for the Rest of Us
 - Small business forums on Facebook, Slack, Discord where real ICP members ask questions
 
-**SIGNAL sources (secondary) — what's new in AI, must be translated through audience lens before becoming a topic:**
+**SIGNAL sources (secondary) — broader AI developments, translated through audience lens before becoming a topic:**
 - YouTube: Cole Medin, David Shapiro, AI Jason, aiwithbrandon, Alejandro AO, Sam Witteveen
 - GitHub: LangChain/LangGraph, LlamaIndex, n8n, AutoGen, CrewAI, NirDiamant/RAG_Techniques
 - Newsletters: DiamantAI, Latent Space (swyx), The AI Corner, Future AGI
@@ -103,8 +112,9 @@ export const RESEARCH_SOURCES = `
 - Platforms: Hugging Face
 
 **How to use these sources:**
-1. Start with AUDIENCE sources to find the pain, language, and questions already recurring.
-2. Scan SIGNAL sources for developments that connect to that audience pain.
-3. Propose topics at the intersection, framed in audience language.
-4. Reject topics that only make sense to someone who already understands the technology.
+1. FIRST: check priority model labs for anything released in the last 14 days. Those go directly into the topic proposals (one per meaningful release), framed in ICP language.
+2. THEN: start with AUDIENCE sources to find the pain, language, and questions already recurring.
+3. THEN: scan SIGNAL sources for developments that connect to that audience pain.
+4. Propose topics at the intersection, framed in audience language.
+5. Reject topics that only make sense to someone who already understands the technology.
 `;

@@ -39,7 +39,10 @@
     { "id": "scan-topics", "name": "Scan Topics", "path": "dist/methods/src/scanTopics.ts", "export": "scanTopics" },
     { "id": "update-editorial-direction", "name": "Update Editorial Direction", "path": "dist/methods/src/updateEditorialDirection.ts", "export": "updateEditorialDirection" },
     { "id": "refresh-topic", "name": "Refresh Topic", "path": "dist/methods/src/refreshTopic.ts", "export": "refreshTopic" },
-    { "id": "review-seo", "name": "Review SEO", "path": "dist/methods/src/reviewSeo.ts", "export": "reviewSeo" }
+    { "id": "review-seo", "name": "Review SEO", "path": "dist/methods/src/reviewSeo.ts", "export": "reviewSeo" },
+    { "id": "review-draft", "name": "Review Draft", "path": "dist/methods/src/reviewDraft.ts", "export": "reviewDraft" },
+    { "id": "capture-quick-topic", "name": "Capture Quick Topic", "path": "dist/methods/src/captureQuickTopic.ts", "export": "captureQuickTopic" },
+    { "id": "import-published-articles", "name": "Import Published Articles", "path": "dist/methods/src/importPublishedArticles.ts", "export": "importPublishedArticles" }
   ],
 
   "interfaces": [

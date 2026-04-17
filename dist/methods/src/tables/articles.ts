@@ -47,6 +47,18 @@ interface Article {
     }>;
     generatedAt: number;
   };
+  // Adversarial draft review — complements the SEO critique by focusing on
+  // voice, audience fit, flow, and structure instead of search performance.
+  draftCritique?: {
+    overallAssessment: string;
+    issues: Array<{
+      severity: 'critical' | 'should-fix' | 'nice-to-have';
+      area: 'opening-hook' | 'audience-fit' | 'voice-consistency' | 'section-focus' | 'flow' | 'closing-payoff';
+      issue: string;
+      suggestion: string;
+    }>;
+    generatedAt: number;
+  };
 }
 
 export const Articles = db.defineTable<Article>('articles');

@@ -4,6 +4,7 @@ import { Topics } from './tables/topics';
 import { VOICE_PROFILE, AUDIENCE_PROFILE, RESEARCH_SOURCES } from './common/voiceProfile';
 import { pickImageConcept, renderStillLife, ImageConcept } from './common/generateStillLife';
 import { reviewSeoCritique } from './common/seoCritique';
+import { reviewDraftCritique } from './common/draftCritique';
 
 export async function startArticle(input: {
   topicId?: string;
@@ -438,11 +439,12 @@ This is the HERO image for the article. It should represent the article's overal
 
   console.log(`[${articleId}] Hero concept:`, heroConcept.objects.map(o => `${o.name}`).join(', '));
 
-  // Step 3: In parallel, generate all three images AND run the adversarial
-  // SEO critique. Images and critique are independent so running concurrently
-  // saves ~30 seconds on the critical path. Each call independently handles
-  // errors so one failure doesn't kill the others.
-  const [heroUrl, bodyUrl1, bodyUrl2, critiqueResult] = await Promise.all([
+  // Step 3: In parallel, generate all three images AND run BOTH adversarial
+  // reviewers (SEO critique + Draft critique). Images and critiques are
+  // independent so running concurrently saves ~60 seconds on the critical
+  // path. Each call independently handles errors so one failure doesn't kill
+  // the others.
+  const [heroUrl, bodyUrl1, bodyUrl2, seoCritiqueResult, draftCritiqueResult] = await Promise.all([
     renderStillLife(heroConcept).catch(err => {
       console.error(`[${articleId}] Hero image render failed:`, err);
       return null;
@@ -470,6 +472,14 @@ This is the HERO image for the article. It should represent the article's overal
       console.error(`[${articleId}] SEO critique failed:`, err);
       return null;
     }),
+    reviewDraftCritique({
+      title: seoTitle,
+      body: seoBody,
+      excerpt: seoExcerpt,
+    }).catch(err => {
+      console.error(`[${articleId}] Draft critique failed:`, err);
+      return null;
+    }),
   ]);
   const bodyUrls = [bodyUrl1, bodyUrl2].slice(0, breakPoints.length);
 
@@ -494,9 +504,13 @@ This is the HERO image for the article. It should represent the article's overal
     // Save the chosen objects so future articles can avoid repeating them
     updates.heroImageObjects = heroConcept.objects.map(o => o.name);
   }
-  if (critiqueResult) {
-    updates.seoCritique = critiqueResult;
-    console.log(`[${articleId}] SEO critique: ${critiqueResult.issues.length} issues (${critiqueResult.issues.filter(i => i.severity === 'critical').length} critical)`);
+  if (seoCritiqueResult) {
+    updates.seoCritique = seoCritiqueResult;
+    console.log(`[${articleId}] SEO critique: ${seoCritiqueResult.issues.length} issues (${seoCritiqueResult.issues.filter(i => i.severity === 'critical').length} critical)`);
+  }
+  if (draftCritiqueResult) {
+    updates.draftCritique = draftCritiqueResult;
+    console.log(`[${articleId}] Draft critique: ${draftCritiqueResult.issues.length} issues (${draftCritiqueResult.issues.filter(i => i.severity === 'critical').length} critical)`);
   }
   await Articles.update(articleId, updates);
   console.log(`[${articleId}] Images complete. Hero: ${heroUrl ? 'yes' : 'failed'}. Body images: ${successfulBodyImages.length}/${breakPoints.length}`);

@@ -6,6 +6,7 @@ import { IconArrowLeft, IconLoader2, IconCheck, IconExternalLink, IconPhoto, Ico
 import { Streamdown } from 'streamdown';
 import { SeoPanel } from '../components/SeoPanel';
 import { SeoCritiquePanel } from '../components/SeoCritiquePanel';
+import { DraftCritiquePanel } from '../components/DraftCritiquePanel';
 import { findKeywordPositions } from '../utils/seoScore';
 
 function formatDate(ts?: number) {
@@ -432,7 +433,10 @@ export function ArticlePage() {
           </div>
         </div>
 
-        {/* SEO Critique Panel — strategic, voice-aware adversarial review */}
+        {/* Draft Critique Panel — voice, audience fit, structure, flow */}
+        <DraftCritiquePanel article={article} />
+
+        {/* SEO Critique Panel — strategic, search-performance adversarial review */}
         <SeoCritiquePanel article={article} />
 
         {/* SEO Panel — deterministic checks + editable fields */}
