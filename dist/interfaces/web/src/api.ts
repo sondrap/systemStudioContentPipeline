@@ -56,6 +56,17 @@ export interface Article {
     }>;
     generatedAt: number;
   };
+  linkedInPosts?: Array<{
+    id: string;
+    postType: 'story' | 'hot-take' | 'framework' | 'data' | 'confession';
+    hookPattern: string;
+    content: string;
+    characterCount: number;
+    generatedAt: number;
+    edited: boolean;
+    postedAt?: number;
+    notes?: string;
+  }>;
   created_at: number;
   updated_at: number;
 }
@@ -91,6 +102,9 @@ export const api = createClient<{
   regenerateImage(input: { id: string }): Promise<{ article: Article }>;
   reviewSeo(input: { id: string }): Promise<{ article: Article; critique: Article['seoCritique'] }>;
   reviewDraft(input: { id: string }): Promise<{ article: Article; critique: Article['draftCritique'] }>;
+  generateLinkedInPosts(input: { id: string }): Promise<{ article: Article; posts: NonNullable<Article['linkedInPosts']> }>;
+  regenerateLinkedInPost(input: { articleId: string; variantId: string }): Promise<{ article: Article; post: NonNullable<Article['linkedInPosts']>[number] }>;
+  updateLinkedInPost(input: { articleId: string; variantId: string; content?: string; postedAt?: number | null; notes?: string; delete?: boolean }): Promise<{ article: Article }>;
   captureQuickTopic(input: { rawInput: string }): Promise<{ topic: Topic }>;
   importPublishedArticles(): Promise<{ totalOnSite: number; imported: number; skipped: number; failed: number; details: any }>;
   searchWeb(input: { query: string }): Promise<{ results: any[] }>;

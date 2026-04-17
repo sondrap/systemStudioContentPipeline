@@ -7,6 +7,7 @@ import { Streamdown } from 'streamdown';
 import { SeoPanel } from '../components/SeoPanel';
 import { SeoCritiquePanel } from '../components/SeoCritiquePanel';
 import { DraftCritiquePanel } from '../components/DraftCritiquePanel';
+import { LinkedInPostsPanel } from '../components/LinkedInPostsPanel';
 import { findKeywordPositions } from '../utils/seoScore';
 
 function formatDate(ts?: number) {
@@ -447,6 +448,9 @@ export function ArticlePage() {
           highlightKeywords={highlightKeywords}
           onToggleHighlight={setHighlightKeywords}
         />
+
+        {/* LinkedIn Posts Panel — distribution layer, 5 post variants per article */}
+        <LinkedInPostsPanel article={article} />
 
         {/* Research brief */}
         {article.researchBrief && (

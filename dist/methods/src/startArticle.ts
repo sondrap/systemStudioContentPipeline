@@ -5,6 +5,7 @@ import { VOICE_PROFILE, AUDIENCE_PROFILE, RESEARCH_SOURCES } from './common/voic
 import { pickImageConcept, renderStillLife, ImageConcept } from './common/generateStillLife';
 import { reviewSeoCritique } from './common/seoCritique';
 import { reviewDraftCritique } from './common/draftCritique';
+import { generateAllLinkedInPosts } from './common/linkedInPosts';
 
 export async function startArticle(input: {
   topicId?: string;
@@ -439,12 +440,12 @@ This is the HERO image for the article. It should represent the article's overal
 
   console.log(`[${articleId}] Hero concept:`, heroConcept.objects.map(o => `${o.name}`).join(', '));
 
-  // Step 3: In parallel, generate all three images AND run BOTH adversarial
-  // reviewers (SEO critique + Draft critique). Images and critiques are
-  // independent so running concurrently saves ~60 seconds on the critical
-  // path. Each call independently handles errors so one failure doesn't kill
-  // the others.
-  const [heroUrl, bodyUrl1, bodyUrl2, seoCritiqueResult, draftCritiqueResult] = await Promise.all([
+  // Step 3: In parallel, generate all three images, run BOTH adversarial
+  // reviewers (SEO critique + Draft critique), AND generate the LinkedIn
+  // post variants. Images, critiques, and LinkedIn posts are independent so
+  // running concurrently saves significant time on the critical path. Each
+  // call independently handles errors so one failure doesn't kill the others.
+  const [heroUrl, bodyUrl1, bodyUrl2, seoCritiqueResult, draftCritiqueResult, linkedInPostsResult] = await Promise.all([
     renderStillLife(heroConcept).catch(err => {
       console.error(`[${articleId}] Hero image render failed:`, err);
       return null;
@@ -480,6 +481,15 @@ This is the HERO image for the article. It should represent the article's overal
       console.error(`[${articleId}] Draft critique failed:`, err);
       return null;
     }),
+    generateAllLinkedInPosts({
+      articleTitle: seoTitle,
+      articleBody: seoBody,
+      articleExcerpt: seoExcerpt,
+      focusKeyword,
+    }).catch(err => {
+      console.error(`[${articleId}] LinkedIn post generation failed:`, err);
+      return [];
+    }),
   ]);
   const bodyUrls = [bodyUrl1, bodyUrl2].slice(0, breakPoints.length);
 
@@ -511,6 +521,10 @@ This is the HERO image for the article. It should represent the article's overal
   if (draftCritiqueResult) {
     updates.draftCritique = draftCritiqueResult;
     console.log(`[${articleId}] Draft critique: ${draftCritiqueResult.issues.length} issues (${draftCritiqueResult.issues.filter(i => i.severity === 'critical').length} critical)`);
+  }
+  if (linkedInPostsResult && linkedInPostsResult.length > 0) {
+    updates.linkedInPosts = linkedInPostsResult;
+    console.log(`[${articleId}] LinkedIn posts: ${linkedInPostsResult.length} variants generated (${linkedInPostsResult.map(p => p.postType).join(', ')})`);
   }
   await Articles.update(articleId, updates);
   console.log(`[${articleId}] Images complete. Hero: ${heroUrl ? 'yes' : 'failed'}. Body images: ${successfulBodyImages.length}/${breakPoints.length}`);

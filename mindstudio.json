@@ -42,7 +42,10 @@
     { "id": "review-seo", "name": "Review SEO", "path": "dist/methods/src/reviewSeo.ts", "export": "reviewSeo" },
     { "id": "review-draft", "name": "Review Draft", "path": "dist/methods/src/reviewDraft.ts", "export": "reviewDraft" },
     { "id": "capture-quick-topic", "name": "Capture Quick Topic", "path": "dist/methods/src/captureQuickTopic.ts", "export": "captureQuickTopic" },
-    { "id": "import-published-articles", "name": "Import Published Articles", "path": "dist/methods/src/importPublishedArticles.ts", "export": "importPublishedArticles" }
+    { "id": "import-published-articles", "name": "Import Published Articles", "path": "dist/methods/src/importPublishedArticles.ts", "export": "importPublishedArticles" },
+    { "id": "generate-linkedin-posts", "name": "Generate LinkedIn Posts", "path": "dist/methods/src/generateLinkedInPosts.ts", "export": "generateLinkedInPosts" },
+    { "id": "regenerate-linkedin-post", "name": "Regenerate LinkedIn Post", "path": "dist/methods/src/regenerateLinkedInPost.ts", "export": "regenerateLinkedInPost" },
+    { "id": "update-linkedin-post", "name": "Update LinkedIn Post", "path": "dist/methods/src/updateLinkedInPost.ts", "export": "updateLinkedInPost" }
   ],
 
   "interfaces": [

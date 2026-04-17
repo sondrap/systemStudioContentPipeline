@@ -59,6 +59,20 @@ interface Article {
     }>;
     generatedAt: number;
   };
+  // LinkedIn post variants generated from the article. One article yields up
+  // to 5 posts (one per post type), each editable and tagged with metadata.
+  // Sondra publishes them one at a time to Typefully or LinkedIn over weeks.
+  linkedInPosts?: Array<{
+    id: string;                    // stable id so the UI can track variants
+    postType: 'story' | 'hot-take' | 'framework' | 'data' | 'confession';
+    hookPattern: string;           // which hook pattern was used (for learning)
+    content: string;               // the full post text, ready to copy/paste
+    characterCount: number;        // computed on generation, updated on edit
+    generatedAt: number;
+    edited: boolean;               // true once Sondra modifies content
+    postedAt?: number;             // set when she marks it posted
+    notes?: string;                // her notes about performance, etc.
+  }>;
 }
 
 export const Articles = db.defineTable<Article>('articles');
