@@ -5,6 +5,7 @@ import {
   IconFileText,
   IconMessageCircle,
   IconArchive,
+  IconBooks,
   IconSettings,
   IconLogout,
 } from '@tabler/icons-react';
@@ -13,6 +14,7 @@ import { auth } from '@mindstudio-ai/interface';
 const NAV_ITEMS = [
   { path: '/', icon: IconLayoutKanban, label: 'Pipeline' },
   { path: '/backlog', icon: IconArchive, label: 'Backlog' },
+  { path: '/archive', icon: IconBooks, label: 'Archive' },
   { path: '/chat', icon: IconMessageCircle, label: 'Chat' },
 ];
 

@@ -8,6 +8,7 @@ import { PipelinePage } from './pages/PipelinePage';
 import { ArticlePage } from './pages/ArticlePage';
 import { ChatPage } from './pages/ChatPage';
 import { BacklogPage } from './pages/BacklogPage';
+import { ArchivePage } from './pages/ArchivePage';
 import './theme.css';
 
 export default function App() {
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/articles/:id" component={ArticlePage} />
         <Route path="/chat" component={ChatPage} />
         <Route path="/backlog" component={BacklogPage} />
+        <Route path="/archive" component={ArchivePage} />
         <Route><Redirect to="/" /></Route>
       </Switch>
     </Layout>

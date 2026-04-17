@@ -157,12 +157,20 @@ function ArticleCard({ article }: { article: Article }) {
   );
 }
 
-function PipelineColumn({ status, label, dotColor, articles }: {
+function PipelineColumn({ status, label, dotColor, articles, totalCount, archiveOverflow, onArchiveClick }: {
   status: ArticleStatus;
   label: string;
   dotColor: string;
   articles: Article[];
+  totalCount?: number;
+  archiveOverflow?: number;
+  onArchiveClick?: () => void;
 }) {
+  // If we have overflow, show the total count in the header but render only
+  // the visible subset. The user sees "16" in the header and "+13 in archive"
+  // at the bottom of the column.
+  const displayCount = totalCount ?? articles.length;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -185,12 +193,40 @@ function PipelineColumn({ status, label, dotColor, articles }: {
           color: 'var(--text-secondary)',
           fontWeight: 500,
         }}>
-          {articles.length}
+          {displayCount}
         </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {articles.map((a) => <ArticleCard key={a.id} article={a} />)}
       </div>
+      {archiveOverflow && archiveOverflow > 0 && onArchiveClick ? (
+        <button
+          onClick={onArchiveClick}
+          style={{
+            marginTop: 4,
+            padding: '10px 12px',
+            borderRadius: 10,
+            border: '1px dashed var(--border)',
+            background: 'transparent',
+            color: 'var(--text-secondary)',
+            fontSize: 12,
+            fontWeight: 500,
+            cursor: 'pointer',
+            textAlign: 'center',
+            transition: 'all 150ms',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--surface)';
+            e.currentTarget.style.color = 'var(--deep-current)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = 'var(--text-secondary)';
+          }}
+        >
+          +{archiveOverflow} more in archive →
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -417,15 +453,36 @@ export function PipelinePage() {
       ) : (
         /* Pipeline columns */
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, alignItems: 'start' }}>
-          {STAGES.map(({ status, label, dotColor }) => (
-            <PipelineColumn
-              key={status}
-              status={status}
-              label={label}
-              dotColor={dotColor}
-              articles={articles.filter((a) => a.status === status)}
-            />
-          ))}
+          {STAGES.map(({ status, label, dotColor }) => {
+            const columnArticles = articles.filter((a) => a.status === status);
+
+            // Published column: only show articles from the last 30 days.
+            // Older articles live in the Archive. Compute the overflow count
+            // so the column can link to the archive when there are more.
+            const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+            const now = Date.now();
+            const isPublished = status === 'published';
+            const visible = isPublished
+              ? columnArticles.filter((a) => {
+                  const publishedTime = a.publishedAt || a.created_at;
+                  return now - publishedTime < THIRTY_DAYS_MS;
+                })
+              : columnArticles;
+            const archiveOverflow = isPublished ? columnArticles.length - visible.length : 0;
+
+            return (
+              <PipelineColumn
+                key={status}
+                status={status}
+                label={label}
+                dotColor={dotColor}
+                articles={visible}
+                totalCount={columnArticles.length}
+                archiveOverflow={archiveOverflow}
+                onArchiveClick={() => navigate('/archive')}
+              />
+            );
+          })}
         </div>
       )}
     </div>
