@@ -238,10 +238,70 @@ export function PipelinePage() {
 
   return (
     <div style={{ padding: 24, height: '100%', overflow: 'auto' }}>
+      {/* Toast for import results (auto-dismisses when user takes another action) */}
+      {importMessage && (
+        <div style={{
+          position: 'fixed',
+          top: 80,
+          right: 24,
+          zIndex: 100,
+          padding: '10px 16px',
+          borderRadius: 10,
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+          fontSize: 13,
+          color: 'var(--text-primary)',
+          maxWidth: 320,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 8,
+        }}>
+          <span style={{ flex: 1 }}>{importMessage}</span>
+          <button
+            onClick={() => setImportMessage(null)}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--text-tertiary)',
+              fontSize: 16,
+              cursor: 'pointer',
+              padding: 0,
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 style={{ fontSize: 28, fontWeight: 500 }}>Content Pipeline</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={handleImport}
+            disabled={importing}
+            title="Import any articles published on systemstudio.ai that aren't in the pipeline yet"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 12px',
+              borderRadius: 8,
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: importing ? 'wait' : 'pointer',
+              transition: 'all 150ms',
+            }}
+          >
+            {importing
+              ? <><IconLoader2 size={13} className="spinner" /> Syncing...</>
+              : <><IconDownload size={13} stroke={1.8} /> Sync from site</>}
+          </button>
           <button
             onClick={() => loadData()}
             title="Refresh pipeline"
