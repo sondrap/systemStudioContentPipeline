@@ -1,6 +1,7 @@
 import { auth, mindstudio } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
 import { VOICE_PROFILE, AUDIENCE_PROFILE } from './common/voiceProfile';
+import { reviewSeoCritique } from './common/seoCritique';
 
 export async function sendBack(input: { id: string; revisionNotes: string }) {
   auth.requireRole('admin');
@@ -78,12 +79,31 @@ Output ONLY the revised article body in markdown. No preamble, no explanation.`,
 
   const wordCount = content.split(/\s+/).filter(Boolean).length;
 
+  // Save the rewritten body and clear revision notes first so the user sees
+  // results quickly. Then kick off a fresh SEO critique against the new draft.
   await Articles.update(articleId, {
     body: content,
     wordCount,
     status: 'review',
-    revisionNotes: undefined, // Clear notes after rewrite
+    revisionNotes: undefined,
   });
 
-  console.log(`[${articleId}] Rewrite complete (${wordCount} words).`);
+  console.log(`[${articleId}] Rewrite complete (${wordCount} words). Running SEO critique...`);
+
+  // Run a fresh SEO critique on the revised article. Don't block the user —
+  // run it as a follow-up so they can start reading while the critique updates.
+  try {
+    const critique = await reviewSeoCritique({
+      title: article.title,
+      body: content,
+      excerpt: article.excerpt || '',
+      focusKeyword: article.focusKeyword || '',
+      metaDescription: article.ogDescription || article.metaDescription || '',
+      competitorInsights: article.researchBrief?.competitorInsights,
+    });
+    await Articles.update(articleId, { seoCritique: critique });
+    console.log(`[${articleId}] SEO critique refreshed: ${critique.issues.length} issues.`);
+  } catch (err) {
+    console.error(`[${articleId}] SEO critique refresh failed:`, err);
+  }
 }

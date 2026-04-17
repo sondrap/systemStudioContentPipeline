@@ -3,6 +3,7 @@ import { Articles } from './tables/articles';
 import { Topics } from './tables/topics';
 import { VOICE_PROFILE, AUDIENCE_PROFILE, RESEARCH_SOURCES } from './common/voiceProfile';
 import { pickImageConcept, renderStillLife, ImageConcept } from './common/generateStillLife';
+import { reviewSeoCritique } from './common/seoCritique';
 
 export async function startArticle(input: {
   topicId?: string;
@@ -437,20 +438,40 @@ This is the HERO image for the article. It should represent the article's overal
 
   console.log(`[${articleId}] Hero concept:`, heroConcept.objects.map(o => `${o.name}`).join(', '));
 
-  // Step 3: Generate all three images in parallel to save time.
-  // Each call independently handles errors so one failure doesn't kill the others.
-  const [heroUrl, ...bodyUrls] = await Promise.all([
+  // Step 3: In parallel, generate all three images AND run the adversarial
+  // SEO critique. Images and critique are independent so running concurrently
+  // saves ~30 seconds on the critical path. Each call independently handles
+  // errors so one failure doesn't kill the others.
+  const [heroUrl, bodyUrl1, bodyUrl2, critiqueResult] = await Promise.all([
     renderStillLife(heroConcept).catch(err => {
       console.error(`[${articleId}] Hero image render failed:`, err);
       return null;
     }),
-    ...breakPoints.map(bp =>
-      renderStillLife(bp.concept).catch(err => {
-        console.error(`[${articleId}] Body image render failed for "${bp.afterHeading}":`, err);
-        return null;
-      })
-    ),
+    breakPoints[0]
+      ? renderStillLife(breakPoints[0].concept).catch(err => {
+          console.error(`[${articleId}] Body image 1 render failed:`, err);
+          return null;
+        })
+      : Promise.resolve(null),
+    breakPoints[1]
+      ? renderStillLife(breakPoints[1].concept).catch(err => {
+          console.error(`[${articleId}] Body image 2 render failed:`, err);
+          return null;
+        })
+      : Promise.resolve(null),
+    reviewSeoCritique({
+      title: seoTitle,
+      body: seoBody,
+      excerpt: seoExcerpt,
+      focusKeyword,
+      metaDescription: seoOgDescription,
+      competitorInsights: researchResult.output.competitorInsights,
+    }).catch(err => {
+      console.error(`[${articleId}] SEO critique failed:`, err);
+      return null;
+    }),
   ]);
+  const bodyUrls = [bodyUrl1, bodyUrl2].slice(0, breakPoints.length);
 
   // Step 4: Insert body images into the article markdown. We walk the body line
   // by line, and when we find a line that matches one of our target headings,
@@ -472,6 +493,10 @@ This is the HERO image for the article. It should represent the article's overal
     updates.coverImageAlt = heroConcept.altText;
     // Save the chosen objects so future articles can avoid repeating them
     updates.heroImageObjects = heroConcept.objects.map(o => o.name);
+  }
+  if (critiqueResult) {
+    updates.seoCritique = critiqueResult;
+    console.log(`[${articleId}] SEO critique: ${critiqueResult.issues.length} issues (${critiqueResult.issues.filter(i => i.severity === 'critical').length} critical)`);
   }
   await Articles.update(articleId, updates);
   console.log(`[${articleId}] Images complete. Hero: ${heroUrl ? 'yes' : 'failed'}. Body images: ${successfulBodyImages.length}/${breakPoints.length}`);

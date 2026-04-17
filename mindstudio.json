@@ -37,7 +37,8 @@
     { "id": "delete-article", "name": "Delete Article", "path": "dist/methods/src/deleteArticle.ts", "export": "deleteArticle" },
     { "id": "scan-topics", "name": "Scan Topics", "path": "dist/methods/src/scanTopics.ts", "export": "scanTopics" },
     { "id": "update-editorial-direction", "name": "Update Editorial Direction", "path": "dist/methods/src/updateEditorialDirection.ts", "export": "updateEditorialDirection" },
-    { "id": "refresh-topic", "name": "Refresh Topic", "path": "dist/methods/src/refreshTopic.ts", "export": "refreshTopic" }
+    { "id": "refresh-topic", "name": "Refresh Topic", "path": "dist/methods/src/refreshTopic.ts", "export": "refreshTopic" },
+    { "id": "review-seo", "name": "Review SEO", "path": "dist/methods/src/reviewSeo.ts", "export": "reviewSeo" }
   ],
 
   "interfaces": [

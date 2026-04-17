@@ -35,6 +35,17 @@ export interface Article {
   articleType?: ArticleType;
   tags?: string[];
   coverImageAlt?: string;
+  heroImageObjects?: string[];
+  seoCritique?: {
+    overallAssessment: string;
+    issues: Array<{
+      severity: 'critical' | 'should-fix' | 'nice-to-have';
+      area: 'headline' | 'opening' | 'meta-description' | 'structure' | 'differentiation' | 'intent-match';
+      issue: string;
+      suggestion: string;
+    }>;
+    generatedAt: number;
+  };
   created_at: number;
   updated_at: number;
 }
@@ -67,6 +78,7 @@ export const api = createClient<{
   publishArticle(input: { id: string }): Promise<{ article: Article }>;
   sendBack(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;
   regenerateImage(input: { id: string }): Promise<{ article: Article }>;
+  reviewSeo(input: { id: string }): Promise<{ article: Article; critique: Article['seoCritique'] }>;
   searchWeb(input: { query: string }): Promise<{ results: any[] }>;
   deleteArticle(input: { id: string }): Promise<{ deleted: boolean }>;
   scanTopics(): Promise<{ status: string }>;

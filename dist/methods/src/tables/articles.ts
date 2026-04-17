@@ -34,6 +34,19 @@ interface Article {
   // List of objects chosen from the brand bank for this article's hero image.
   // Used to avoid repeating object combinations in future articles.
   heroImageObjects?: string[];
+  // Adversarial SEO critique generated after the SEO optimization pass.
+  // Issues are strategic and voice-aware, not deterministic checklist items
+  // (those are computed client-side in the SEO score panel).
+  seoCritique?: {
+    overallAssessment: string;
+    issues: Array<{
+      severity: 'critical' | 'should-fix' | 'nice-to-have';
+      area: 'headline' | 'opening' | 'meta-description' | 'structure' | 'differentiation' | 'intent-match';
+      issue: string;
+      suggestion: string;
+    }>;
+    generatedAt: number;
+  };
 }
 
 export const Articles = db.defineTable<Article>('articles');

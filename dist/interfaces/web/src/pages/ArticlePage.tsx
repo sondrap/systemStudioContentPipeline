@@ -5,6 +5,7 @@ import { api, Article } from '../api';
 import { IconArrowLeft, IconLoader2, IconCheck, IconExternalLink, IconPhoto, IconTrash, IconPencil, IconHighlight, IconUsers, IconEye, IconCode } from '@tabler/icons-react';
 import { Streamdown } from 'streamdown';
 import { SeoPanel } from '../components/SeoPanel';
+import { SeoCritiquePanel } from '../components/SeoCritiquePanel';
 import { findKeywordPositions } from '../utils/seoScore';
 
 function formatDate(ts?: number) {
@@ -402,7 +403,10 @@ export function ArticlePage() {
           </div>
         </div>
 
-        {/* SEO Panel */}
+        {/* SEO Critique Panel — strategic, voice-aware adversarial review */}
+        <SeoCritiquePanel article={article} />
+
+        {/* SEO Panel — deterministic checks + editable fields */}
         <SeoPanel
           article={article}
           title={title}
