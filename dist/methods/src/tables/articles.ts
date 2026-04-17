@@ -13,9 +13,15 @@ interface Article {
     keyFindings: string[];
     sources: { url: string; title: string; relevance: string }[];
     quotes: { text: string; attribution: string }[];
+    competitorInsights?: {
+      topArticles: { url: string; title: string; focusKeyword?: string; wordCount?: number }[];
+      commonKeywords: string[];
+      gaps: string[];
+    };
   };
   imageUrl?: string;
   seoKeywords?: string[];
+  focusKeyword?: string;
   metaDescription?: string;
   ogDescription?: string;
   revisionNotes?: string;

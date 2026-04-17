@@ -2,52 +2,59 @@
 name: SEO Intelligence Suite
 description: Beyond keyword suggestions — real competitive gap analysis, semantic topic clustering, and a live optimization score in the article editor that tells Sondra exactly where to improve before she publishes.
 effort: large
-status: planned
+status: done
 ---
 
-The MVP generates keyword suggestions and a meta description. This makes SEO a real capability: proactive gap analysis that shows Sondra which topics her competitors are ranking for but she isn't, semantic clustering that helps her build authority across a topic area, and live scoring in the editor.
+SEO woven through every pipeline stage rather than treated as a separate step. Articles arrive at the review phase already optimized, with clear visibility into what matters for search so Sondra can edit with confidence.
 
-## What it looks like
+## What Shipped
 
-**Competitive Gap Analysis**
-- For any topic, the research agent analyzes the top-ranking articles and surfaces: what keywords they're targeting, what questions they're answering, what angles Sondra isn't covering
-- Presented as a "gap map" — here's what the competition is doing, here's where Sondra has an opening
-- Filtered through her voice angle: gaps worth filling are ones where Sondra has a specific, earned opinion — not just content inflation
+**Topic-Level Keyword Research**
+- Every topic (both agent-scanned and manually added) gets a suggested focus keyword and an SEO opportunity rating (`high`, `moderate`, or `low`) during the scan
+- Backlog page shows a colored SEO badge (green up-arrow, amber tilde, or muted down-arrow) on every topic row
+- Detail panel displays the full suggested keyword with context about how it will be used
+- Helps Sondra prioritize what to write based on real search demand, not just gut feel
 
-**Semantic Topic Clusters**
-- The pipeline builds a map of Sondra's published content, organized by semantic clusters (e.g., "RAG architecture," "fine-tuning costs," "agentic workflow design")
-- Shows which clusters are well-covered and which are thin
-- Informs the Topic Radar: under-covered clusters with high search demand get surfaced as priority topics
+**Competitor Gap Analysis in Research**
+- During the research phase, the AI analyzes the top 3-5 Google results for the topic
+- Extracts common keywords used across competing articles and identifies content gaps (angles, audiences, or subtopics that competitors miss)
+- Passed into the writing prompt so the draft naturally differentiates from competitors
+- Surfaced in the editor's SEO panel so Sondra can see the competitive landscape while reviewing
 
 **Live SEO Score in Editor**
-- While reviewing an article, a sidebar panel shows a live SEO score (0-100) with specific improvement callouts:
-  - "Primary keyword appears 0 times in the first 200 words"
-  - "Meta description is 87 characters — shoot for 140-160"
-  - "No internal links to related articles"
-  - "H2 subheadings don't include secondary keywords"
-- Each callout has a one-click fix or a "why does this matter?" explanation
-- Score updates as Sondra edits the article
+- Circular score ring (0-100) with color coding: green at 70+, amber at 40-69, red below 40
+- 10 weighted checks covering focus keyword placement, meta description length, headings, keyword density, article length, and URL slug
+- Updates in real time on every keystroke (computed client-side, no network round-trip)
+- Each check has a pass/fail indicator with specific detail explaining what's wrong and how to fix it
 
-**Keyword Research Panel**
-- Expanded from the MVP's basic keyword suggestions
-- Shows search volume estimates, difficulty, and related long-tail variants
-- Surfaced in the research brief before drafting, so the AI can optimize from the start
+**Keyword Highlighting**
+- Toggle button switches the article body from editable textarea to a read-only view with every occurrence of the focus keyword wrapped in a gold highlight
+- Directly solves "I don't know what to change if it's SEO important" — Sondra can instantly see which words are there for search and which are just prose
+- A "Back to editing" pill button returns to the editable view
 
-## Key details
+**Editable SEO Fields**
+- Focus keyword, meta description, and URL slug are directly editable in the sidebar panel
+- Meta description shows live character count with color feedback (gold if under 120, green at 120-165, red over 165)
+- URL slug auto-cleans input to lowercase alphanumeric + hyphens
+- Changes debounce to the server after 1.5 seconds of inactivity
 
-- SEO score is a guide, not a mandate. Sondra's voice comes first. The score should never push toward keyword stuffing or unnatural phrasing.
+**Competitor Insights Panel**
+- Collapsible section in the SEO panel showing research-phase competitor analysis
+- Three subsections: common keywords competitors use (as tag chips), content gaps (bulleted list of opportunities), and top competing articles with their word counts
+
+## Key Details
+
+- SEO score is a guide, not a mandate. Sondra's voice comes first. The score never pushes toward keyword stuffing or unnatural phrasing.
 - Gap analysis runs as part of the research phase, not as a separate manual action
-- Semantic cluster map refreshes when new articles are published
-- Internal linking suggestions are based on her actual published article library, not generic best practices
+- All scoring is client-side in `utils/seoScore.ts`. No backend call for the score itself.
+- Topic-level keyword research uses AI-derived estimates from Google search results. No third-party SEO API required.
 
-~~~
-SEO intelligence has three implementation parts:
+## Not Yet Built (Future Enhancements)
 
-1. **Gap analysis in research phase:** During `runTask()`, add additional searches targeting competitor articles (top 5 Google results for the topic). Scrape and analyze their heading structure, keyword density, and questions they address. Add a `seoGapAnalysis` field to the research brief JSON.
+- **Semantic topic clusters**: Map Sondra's published library into semantic clusters to inform topic prioritization
+- **Internal linking suggestions**: Recommend linking to related published articles from within a draft
+- **Real search volume data**: Integrate a third-party SEO API (Ahrefs, SEMrush) for quantitative search metrics
 
-2. **Semantic cluster map:** A background job that runs after each publish. Uses `generateText` to cluster all published article titles/keywords into 5-10 semantic topics. Stored as a `contentClusters` JSON on the settings/user record.
+## History
 
-3. **Live SEO score:** Frontend-computed from article fields already in the store. No backend call needed for most checks. Keyword density, meta description length, H2 structure, and word count are all computable client-side. Internal link suggestions require a method call to get the published article library.
-
-Third-party SEO APIs (Ahrefs, SEMrush) could provide search volume data but require API keys as secrets. Build without them first — AI-derived estimates from web search are good enough for MVP of this feature.
-~~~
+- **2026-04-16** — Built the full SEO integration across all four pipeline stages. Added `seoOpportunity` and `suggestedKeyword` to Topics, `competitorInsights` to research brief, live SEO score panel with 10 weighted checks in the article editor, keyword highlight toggle, and editable SEO fields (focus keyword, meta description, slug). Scenario data updated to seed realistic SEO values.

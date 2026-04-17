@@ -19,12 +19,20 @@ export function LoginPage() {
     return () => clearTimeout(t);
   }, [resendTimer]);
 
+  // Only allowed emails can sign in
+  const ALLOWED_EMAILS = ['sondra@systemstudio.ai', 'remy@mindstudio.ai'];
+
   const handleSendCode = async () => {
     if (!email.trim() || sending) return;
+    const normalized = email.trim().toLowerCase();
+    if (!ALLOWED_EMAILS.includes(normalized)) {
+      setError('This app is invite-only.');
+      return;
+    }
     setSending(true);
     setError('');
     try {
-      const { verificationId: vid } = await auth.sendEmailCode(email.trim());
+      const { verificationId: vid } = await auth.sendEmailCode(normalized);
       setVerificationId(vid);
       setResendTimer(30);
     } catch (err: any) {

@@ -95,6 +95,38 @@ Centered reading column (max-width 680px) with a metadata panel on the right (28
 Content loads with a fade-in from opacity 0 with `translateY(4px)` over 300ms. Metadata panel items stagger in with 50ms delays.
 ~~~
 
+### SEO Score Panel
+
+The metadata panel's most important element is the SEO score panel. It gives Sondra real-time confidence about how optimized her article is, and lets her see what's important for search so she can edit without fear of breaking SEO value.
+
+~~~
+**Header (always visible):**
+- Left: circular progress ring (72x72px) showing 0-100 score. Ring color is green (accent) at 70+, amber at 40-69, red-ish below 40. Score number centered inside the ring in the same color, 18px weight 600.
+- Right: "SEO Score" label in 13px weight 600, with "{passed}/{total} checks passing" in 11px Sage Stone below
+- Chevron on the far right to toggle expand/collapse
+
+**Keyword Highlight Toggle (expanded state):**
+- A full-width button styled like a pill. When active, subtle Deep Current tint; when inactive, transparent with border.
+- Label: "Show keyword highlights" / "Keyword highlights on" with a highlighter icon
+- When active, the main article body area switches from editable textarea to a rendered read-only view where every occurrence of the focus keyword is wrapped in a `<mark>` element with a gold background (`#D4A01735`) and a gold underline (`box-shadow: inset 0 -2px 0 #D4A017`). A sticky "Back to editing" pill button appears at the bottom of the body area so Sondra can return to editing.
+
+**Editable SEO Fields:**
+- Focus Keyword: small label with a key icon, single-line input. Debounced save to server on change.
+- Meta Description: label with live character count (120-160 ideal, shown in color: gold if under 120, green at 120-165, red over 165). 3-row textarea, no resize handle.
+- URL Slug: label, prefixed with `/journal/` in Sage Stone, then a slim input. Input values are auto-cleaned to lowercase alphanumeric + hyphens only as the user types.
+
+**Optimization Checklist:**
+- Small uppercase "OPTIMIZATION CHECKLIST" label
+- Each check is a row: a colored circle (green tint for pass, red tint for fail) with a checkmark or warning icon inside, then label (12px weight 500) and detail (11px Sage Stone). Detail explains what's wrong and how to fix it, or confirms the check is passing.
+
+**Competitor Analysis (collapsible):**
+- Only shown when `researchBrief.competitorInsights` exists
+- Collapsible section below the checklist
+- Three subsections: Common Keywords (as tag chips), Content Gaps (bulleted list), Top Competing Articles (linkable titles with word counts)
+
+The panel is a flex-shrink-0 element in the sidebar column so it doesn't collapse when other panels (like the research brief) have tall content.
+~~~
+
 ## Chat
 
 A conversational interface for brainstorming and ad-hoc requests with the editorial AI agent.

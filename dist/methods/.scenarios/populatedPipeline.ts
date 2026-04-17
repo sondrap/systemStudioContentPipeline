@@ -14,9 +14,10 @@ export async function populatedPipeline() {
     body: `## The $50,000 Question Nobody Asked\n\nLast month a client came to me after spending $50,000 on an AI project that went nowhere. Their vendor had built exactly what was specified. The model worked. The pipeline ran. The outputs were technically correct.\n\nThe problem? They automated the wrong process.\n\nThis happens more than anyone wants to admit. Companies rush to "implement AI" without stopping to ask whether the thing they're automating is worth automating in the first place.\n\n## Three Questions Before You Automate Anything\n\nBefore you spend a dollar on AI, answer these:\n\n**1. What decision does this help me make?**\n\nIf you can't name a specific decision, you're building a science project. "We want to use AI for customer service" is not a decision. "We want to route support tickets to the right team in under 30 seconds" is.\n\n**2. What's the cost of getting it wrong?**\n\nSome mistakes are cheap. A recommendation engine that suggests the wrong product costs you a click. A medical diagnosis tool that misses a condition costs a life. The error tolerance shapes everything about how you build.\n\n**3. Who owns the output?**\n\nAI outputs need a human who cares about them. Not a committee. Not "the team." One person who wakes up thinking about whether the system is working. If nobody wants that job, you don't have a use case yet.\n\n## The Real Cost of Skipping This Step\n\nI've watched companies spend 6 months building AI systems that solve problems nobody actually has. The technology worked perfectly. The business case didn't exist.\n\nThe fix is embarrassingly simple: talk to the people who will use the system before you build it. Not their managers. Not the executive sponsor. The actual humans who will look at the output every day.\n\nThey'll tell you in 15 minutes whether your idea is worth building.`,
     status: 'published',
     imageUrl: 'https://i.mscdn.ai/c67801e6-77a9-48b2-9cc2-6bb5d3039ef8/generated-images/f2a3c650-f893-4c50-9909-625881dcc7a0.png',
+    focusKeyword: 'AI project failure',
     seoKeywords: ['AI projects', 'AI strategy', 'AI implementation', 'business AI'],
     metaDescription: 'Most AI projects fail not because of technology, but because nobody asked the right questions first.',
-    ogDescription: 'Most AI projects fail not because of technology, but because nobody asked the right questions first.',
+    ogDescription: 'Most AI projects fail not because of technology, but because nobody asked the right questions first. Learn the three questions to ask first.',
     tags: ['strategy', 'ai-adoption'],
     publishedAt: db.ago(db.days(5)),
     publishedUrl: 'https://systemstudio.msagent.ai/journal/why-most-ai-projects-fail',
@@ -48,8 +49,9 @@ export async function populatedPipeline() {
     status: 'review',
     imageUrl: 'https://i.mscdn.ai/c67801e6-77a9-48b2-9cc2-6bb5d3039ef8/generated-images/0bbdddc7-2a9f-4822-8407-684ba39110ab.png',
     seoKeywords: ['proprietary data', 'RAG', 'fine-tuning', 'knowledge management'],
-    metaDescription: 'RAG is not a strategy. Here are three approaches that actually work for proprietary data.',
-    ogDescription: 'RAG is not a strategy. Here are three approaches that actually work for proprietary data.',
+    focusKeyword: 'proprietary data AI',
+    metaDescription: 'RAG is not a strategy. Three approaches that actually work for proprietary data AI projects, with real tradeoffs explained.',
+    ogDescription: 'RAG is not a strategy. Here are three approaches that actually work when you have 12 million words of proprietary data to leverage.',
     tags: ['strategy', 'tools'],
     wordCount: 350,
     articleType: 'thought-leadership',
@@ -122,6 +124,8 @@ export async function populatedPipeline() {
       status: 'backlog',
       suggestedBy: 'agent',
       reasoning: 'Observability is the #1 complaint from teams building production agentic systems. Cole Medin and David Shapiro have both done recent deep dives. This is a gap in your published content.',
+      suggestedKeyword: 'AI agent observability',
+      seoOpportunity: 'high',
     },
     {
       title: 'Fine-Tuning vs RAG: The Numbers Nobody Shares',
@@ -130,6 +134,8 @@ export async function populatedPipeline() {
       priority: 'high',
       status: 'backlog',
       suggestedBy: 'manual',
+      suggestedKeyword: 'fine-tuning vs RAG cost',
+      seoOpportunity: 'high',
     },
     {
       title: 'What Andrew Ng Gets Wrong About Agentic Workflows',
@@ -139,6 +145,8 @@ export async function populatedPipeline() {
       status: 'backlog',
       suggestedBy: 'agent',
       reasoning: 'Andrew Ng\'s agentic AI course is the most-referenced resource but oversimplifies the production challenges. A contrarian take would stand out and spark discussion.',
+      suggestedKeyword: 'agentic workflows production',
+      seoOpportunity: 'moderate',
     },
     {
       title: 'n8n: The Dark Horse of AI Workflow Automation',
@@ -148,6 +156,8 @@ export async function populatedPipeline() {
       status: 'backlog',
       suggestedBy: 'agent',
       reasoning: 'Trending rapidly in the AI builder community. Relevant to your audience of business leaders who want to build without deep coding skills.',
+      suggestedKeyword: 'n8n AI automation',
+      seoOpportunity: 'moderate',
     },
     {
       title: 'The Synthetic Data Problem Nobody Talks About',
@@ -156,6 +166,8 @@ export async function populatedPipeline() {
       priority: 'normal',
       status: 'backlog',
       suggestedBy: 'manual',
+      suggestedKeyword: 'synthetic data quality',
+      seoOpportunity: 'low',
     },
   ]);
 }

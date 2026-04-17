@@ -34,12 +34,16 @@
     { "id": "send-back", "name": "Send Back", "path": "dist/methods/src/sendBack.ts", "export": "sendBack" },
     { "id": "regenerate-image", "name": "Regenerate Image", "path": "dist/methods/src/regenerateImage.ts", "export": "regenerateImage" },
     { "id": "search-web", "name": "Search Web", "path": "dist/methods/src/searchWeb.ts", "export": "searchWeb" },
-    { "id": "delete-article", "name": "Delete Article", "path": "dist/methods/src/deleteArticle.ts", "export": "deleteArticle" }
+    { "id": "delete-article", "name": "Delete Article", "path": "dist/methods/src/deleteArticle.ts", "export": "deleteArticle" },
+    { "id": "scan-topics", "name": "Scan Topics", "path": "dist/methods/src/scanTopics.ts", "export": "scanTopics" },
+    { "id": "update-editorial-direction", "name": "Update Editorial Direction", "path": "dist/methods/src/updateEditorialDirection.ts", "export": "updateEditorialDirection" },
+    { "id": "refresh-topic", "name": "Refresh Topic", "path": "dist/methods/src/refreshTopic.ts", "export": "refreshTopic" }
   ],
 
   "interfaces": [
     { "type": "web", "path": "dist/interfaces/web/web.json" },
-    { "type": "agent", "path": "dist/interfaces/agent/agent.json" }
+    { "type": "agent", "path": "dist/interfaces/agent/agent.json" },
+    { "type": "cron", "path": "dist/interfaces/cron/interface.json" }
   ],
 
   "scenarios": [

@@ -5,6 +5,7 @@ interface PipelineStore {
   // Data
   articles: Article[];
   topics: Topic[];
+  editorialDirection: string;
   loading: boolean;
   error: string | null;
 
@@ -16,6 +17,7 @@ interface PipelineStore {
   addTopic: (topic: Topic) => void;
   updateTopicLocal: (id: string, updates: Partial<Topic>) => void;
   removeTopic: (id: string) => void;
+  setEditorialDirection: (direction: string) => void;
 
   // Derived
   articlesByStatus: (status: Article['status']) => Article[];
@@ -25,14 +27,15 @@ interface PipelineStore {
 export const useStore = create<PipelineStore>((set, get) => ({
   articles: [],
   topics: [],
+  editorialDirection: '',
   loading: true,
   error: null,
 
   loadData: async () => {
     try {
       set({ loading: true, error: null });
-      const { articles, topics } = await api.getDashboardData();
-      set({ articles, topics, loading: false });
+      const { articles, topics, editorialDirection } = await api.getDashboardData();
+      set({ articles, topics, editorialDirection: editorialDirection || '', loading: false });
     } catch (err: any) {
       set({ error: err.message, loading: false });
     }
@@ -68,6 +71,10 @@ export const useStore = create<PipelineStore>((set, get) => ({
 
   removeTopic: (id) => {
     set((s) => ({ topics: s.topics.filter((t) => t.id !== id) }));
+  },
+
+  setEditorialDirection: (direction) => {
+    set({ editorialDirection: direction });
   },
 
   articlesByStatus: (status) => {

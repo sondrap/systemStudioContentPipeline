@@ -1,8 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useStore } from '../store';
 import { api, Article } from '../api';
-import { IconArrowLeft, IconLoader2, IconCheck, IconExternalLink, IconPhoto, IconTrash } from '@tabler/icons-react';
+import { IconArrowLeft, IconLoader2, IconCheck, IconExternalLink, IconPhoto, IconTrash, IconPencil, IconHighlight, IconUsers, IconEye, IconCode } from '@tabler/icons-react';
+import { Streamdown } from 'streamdown';
+import { SeoPanel } from '../components/SeoPanel';
+import { findKeywordPositions } from '../utils/seoScore';
 
 function formatDate(ts?: number) {
   if (!ts) return '';
@@ -38,6 +41,8 @@ export function ArticlePage() {
   const [regenerating, setRegenerating] = useState(false);
   const [confirmDeleteArticle, setConfirmDeleteArticle] = useState(false);
   const [deletingArticle, setDeletingArticle] = useState(false);
+  const [highlightKeywords, setHighlightKeywords] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Initialize from article
@@ -63,6 +68,11 @@ export function ArticlePage() {
       setSaveStatus('unsaved');
     }
   }, [articleId, updateArticleLocal]);
+
+  const handleManualSave = useCallback(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    debouncedSave(body, title);
+  }, [body, title, debouncedSave]);
 
   const handleBodyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
@@ -221,29 +231,132 @@ export function ArticlePage() {
                 <span>{readingTime(article.wordCount)}</span>
               </>
             ) : null}
+            <span style={{ marginLeft: 'auto' }} />
+
+            {/* Preview/Edit toggle — renders markdown body with images and formatting */}
+            <button
+              onClick={() => setPreviewMode(!previewMode)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '4px 10px',
+                borderRadius: 6,
+                border: '1px solid var(--border)',
+                background: previewMode ? 'var(--deep-current)' : 'var(--surface)',
+                color: previewMode ? 'white' : 'var(--text-secondary)',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 150ms',
+              }}
+              title={previewMode ? 'Switch back to editing' : 'Preview the rendered article with images'}
+            >
+              {previewMode
+                ? <><IconCode size={12} stroke={1.8} /> Edit</>
+                : <><IconEye size={12} stroke={1.8} /> Preview</>}
+            </button>
+
+            {saveStatus === 'unsaved' ? (
+              <button
+                onClick={handleManualSave}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface)',
+                  color: 'var(--text-primary)',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 150ms',
+                }}
+              >
+                Save
+              </button>
+            ) : saveStatus === 'saving' ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                <IconLoader2 size={11} className="spinner" /> Saving...
+              </span>
+            ) : saveStatus === 'saved' ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--accent)' }}>
+                <IconCheck size={11} stroke={2} /> Saved
+              </span>
+            ) : null}
           </div>
 
-          {/* Body */}
-          <textarea
-            value={body}
-            onChange={handleBodyChange}
-            placeholder="Start writing, or wait for the AI to draft..."
-            style={{
-              width: '100%',
+          {/* Body — three modes: preview (rendered markdown), highlighted (keywords), or editable textarea */}
+          {previewMode ? (
+            <div className="article-preview" style={{
               fontFamily: "'Satoshi', sans-serif",
               fontSize: 17,
-              fontWeight: 400,
               lineHeight: 1.65,
               color: 'var(--text-primary)',
-              border: 'none',
-              background: 'transparent',
-              outline: 'none',
-              resize: 'none',
               minHeight: 400,
-              overflow: 'hidden',
-            }}
-            rows={Math.max(20, (body.match(/\n/g) || []).length + 5)}
-          />
+            }}>
+              <Streamdown>{body}</Streamdown>
+            </div>
+          ) : highlightKeywords && article.focusKeyword ? (
+            <div style={{ position: 'relative' }}>
+              {/* Highlighted preview */}
+              <div
+                style={{
+                  width: '100%',
+                  fontFamily: "'Satoshi', sans-serif",
+                  fontSize: 17,
+                  fontWeight: 400,
+                  lineHeight: 1.65,
+                  color: 'var(--text-primary)',
+                  minHeight: 400,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}
+              >
+                <HighlightedText text={body} keyword={article.focusKeyword} />
+              </div>
+              <button
+                onClick={() => setHighlightKeywords(false)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  position: 'sticky', bottom: 16,
+                  margin: '16px auto 0',
+                  padding: '6px 14px', borderRadius: 20,
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface)',
+                  color: 'var(--text-primary)',
+                  fontSize: 12, fontWeight: 500,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                }}
+              >
+                <IconPencil size={13} stroke={1.5} /> Back to editing
+              </button>
+            </div>
+          ) : (
+            <textarea
+              value={body}
+              onChange={handleBodyChange}
+              placeholder="Start writing, or wait for the AI to draft..."
+              style={{
+                width: '100%',
+                fontFamily: "'Satoshi', sans-serif",
+                fontSize: 17,
+                fontWeight: 400,
+                lineHeight: 1.65,
+                color: 'var(--text-primary)',
+                border: 'none',
+                background: 'transparent',
+                outline: 'none',
+                resize: 'none',
+                minHeight: 400,
+                overflow: 'hidden',
+              }}
+              rows={Math.max(20, (body.match(/\n/g) || []).length + 5)}
+            />
+          )}
         </div>
       </div>
 
@@ -268,12 +381,35 @@ export function ArticlePage() {
           </div>
         </div>
 
-        {/* Save indicator */}
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-          {saveStatus === 'saving' && <span>Saving...</span>}
-          {saveStatus === 'saved' && <span style={{ color: 'var(--success)' }}>Saved</span>}
-          {saveStatus === 'unsaved' && <span>Unsaved changes</span>}
+        {/* Writing For — reminds Sondra (and the audience) who this is for */}
+        <div style={{
+          padding: '10px 12px',
+          background: 'var(--bg)',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          display: 'flex',
+          gap: 10,
+          alignItems: 'flex-start',
+        }}>
+          <IconUsers size={14} stroke={1.5} color="var(--text-tertiary)" style={{ marginTop: 2, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Writing For
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 4 }}>
+              Non-technical founders under $50M revenue. Overwhelmed by AI hype, skeptical of vaporware, want relief not technology.
+            </div>
+          </div>
         </div>
+
+        {/* SEO Panel */}
+        <SeoPanel
+          article={article}
+          title={title}
+          body={body}
+          highlightKeywords={highlightKeywords}
+          onToggleHighlight={setHighlightKeywords}
+        />
 
         {/* Research brief */}
         {article.researchBrief && (
@@ -335,6 +471,21 @@ export function ArticlePage() {
           <div style={{ padding: 12, background: '#ECD8DC20', borderRadius: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
             <span className="overline" style={{ fontSize: 11, marginBottom: 4, display: 'block' }}>Revision Notes</span>
             {article.revisionNotes}
+          </div>
+        )}
+
+        {/* Image concept / alt text — helps Sondra understand what the objects mean */}
+        {article.imageUrl && article.coverImageAlt && (
+          <div>
+            <span className="overline">Image Concept</span>
+            <div style={{
+              marginTop: 8, fontSize: 12, lineHeight: 1.5,
+              color: 'var(--text-secondary)', fontStyle: 'italic',
+              padding: '10px 12px', background: 'var(--bg)',
+              borderRadius: 8, border: '1px solid var(--border)',
+            }}>
+              {article.coverImageAlt}
+            </div>
           </div>
         )}
 
@@ -423,4 +574,41 @@ export function ArticlePage() {
       </div>
     </div>
   );
+}
+
+// Renders text with keyword occurrences highlighted in a mark-like style.
+function HighlightedText({ text, keyword }: { text: string; keyword: string }) {
+  const positions = useMemo(() => findKeywordPositions(text, keyword), [text, keyword]);
+
+  if (positions.length === 0) {
+    return <>{text}</>;
+  }
+
+  const parts: React.ReactNode[] = [];
+  let cursor = 0;
+  positions.forEach((pos, i) => {
+    if (pos.start > cursor) {
+      parts.push(<span key={`t-${i}`}>{text.slice(cursor, pos.start)}</span>);
+    }
+    parts.push(
+      <mark
+        key={`m-${i}`}
+        style={{
+          background: '#D4A01735',
+          color: 'inherit',
+          padding: '0 2px',
+          borderRadius: 3,
+          fontWeight: 600,
+          boxShadow: 'inset 0 -2px 0 #D4A017',
+        }}
+      >
+        {text.slice(pos.start, pos.end)}
+      </mark>
+    );
+    cursor = pos.end;
+  });
+  if (cursor < text.length) {
+    parts.push(<span key="t-end">{text.slice(cursor)}</span>);
+  }
+  return <>{parts}</>;
 }

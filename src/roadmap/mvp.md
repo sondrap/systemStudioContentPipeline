@@ -61,3 +61,4 @@ SystemStudio Pipeline is live. Sondra has a private editorial command center: a 
 ## History
 
 - **April 2026** — Initial build complete. Four-stage pipeline, topic backlog, chat agent, hero image generation (Editorial Still Life), publishing to systemstudio.ai with dry-run mode, full web interface in SystemStudio brand.
+- **April 2026** — Topic scanning infrastructure shipped. Twice-weekly cron job scans the web for trending topics and adds them to the backlog automatically. Manual trigger available from the Backlog page and via the chat agent.

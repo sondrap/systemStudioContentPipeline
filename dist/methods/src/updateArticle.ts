@@ -14,6 +14,8 @@ export async function updateArticle(input: {
   tags?: string[];
   articleType?: 'thought-leadership' | 'educational' | 'commentary' | 'mixed';
   coverImageAlt?: string;
+  focusKeyword?: string;
+  slug?: string;
 }) {
   auth.requireRole('admin');
 
@@ -24,7 +26,7 @@ export async function updateArticle(input: {
   const fields = [
     'title', 'subtitle', 'body', 'excerpt', 'status',
     'seoKeywords', 'metaDescription', 'ogDescription',
-    'tags', 'articleType', 'coverImageAlt',
+    'tags', 'articleType', 'coverImageAlt', 'focusKeyword', 'slug',
   ] as const;
 
   for (const field of fields) {

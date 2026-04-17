@@ -9,7 +9,8 @@
       { "method": "get-dashboard-data", "description": "tools/getDashboardData.md" },
       { "method": "start-article", "description": "tools/startArticle.md" },
       { "method": "get-article", "description": "tools/getArticle.md" },
-      { "method": "search-web", "description": "tools/searchWeb.md" }
+      { "method": "search-web", "description": "tools/searchWeb.md" },
+      { "method": "scan-topics", "description": "tools/scanTopics.md" }
     ],
     "webInterfacePath": "/chat"
   }

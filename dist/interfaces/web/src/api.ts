@@ -17,9 +17,15 @@ export interface Article {
     keyFindings: string[];
     sources: { url: string; title: string; relevance: string }[];
     quotes: { text: string; attribution: string }[];
+    competitorInsights?: {
+      topArticles: { url: string; title: string; focusKeyword?: string; wordCount?: number }[];
+      commonKeywords: string[];
+      gaps: string[];
+    };
   };
   imageUrl?: string;
   seoKeywords?: string[];
+  focusKeyword?: string;
   metaDescription?: string;
   ogDescription?: string;
   revisionNotes?: string;
@@ -38,11 +44,14 @@ export interface Topic {
   title: string;
   description?: string;
   sourceUrls?: string[];
+  sources?: { url: string; title: string; date?: string }[];
   priority: 'high' | 'normal';
   status: 'backlog' | 'in-pipeline';
   articleId?: string;
   suggestedBy: 'agent' | 'manual';
   reasoning?: string;
+  seoOpportunity?: 'high' | 'moderate' | 'low';
+  suggestedKeyword?: string;
   created_at: number;
   updated_at: number;
 }
@@ -54,10 +63,13 @@ export const api = createClient<{
   deleteTopic(input: { id: string }): Promise<{ deleted: boolean }>;
   startArticle(input: { topicId?: string; title?: string; description?: string; articleType?: ArticleType }): Promise<{ article: Article }>;
   getArticle(input: { id: string }): Promise<{ article: Article }>;
-  updateArticle(input: { id: string; title?: string; body?: string; excerpt?: string; status?: ArticleStatus; seoKeywords?: string[]; tags?: string[]; articleType?: ArticleType }): Promise<{ article: Article }>;
+  updateArticle(input: { id: string; title?: string; body?: string; excerpt?: string; status?: ArticleStatus; seoKeywords?: string[]; tags?: string[]; articleType?: ArticleType; focusKeyword?: string; ogDescription?: string; slug?: string }): Promise<{ article: Article }>;
   publishArticle(input: { id: string }): Promise<{ article: Article }>;
   sendBack(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;
   regenerateImage(input: { id: string }): Promise<{ article: Article }>;
   searchWeb(input: { query: string }): Promise<{ results: any[] }>;
   deleteArticle(input: { id: string }): Promise<{ deleted: boolean }>;
+  scanTopics(): Promise<{ status: string }>;
+  updateEditorialDirection(input: { direction: string }): Promise<{ editorialDirection: string }>;
+  refreshTopic(input: { topicId: string }): Promise<{ topic: Topic }>;
 }>();

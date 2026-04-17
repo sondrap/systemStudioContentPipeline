@@ -3,19 +3,32 @@
   "lanes": [
     {
       "name": "Always-On Research",
-      "narrative": "The pipeline starts working before Sondra opens her laptop — scanning sources, surfacing signal, and building a searchable intelligence base that compounds over time.",
+      "narrative": "The pipeline monitors two ecosystems — the AI practitioner world and the founder community forums — finds the intersection, and surfaces what's worth writing before Sondra has to go looking.",
       "items": [
         "source-feed-scanner.md",
+        "prospect-questions-capture.md",
         "proactive-topic-radar.md",
         "research-archive.md"
       ]
     },
     {
       "name": "Voice as a Moat",
-      "narrative": "The more Sondra uses the pipeline, the more precisely it captures her voice and the smarter it becomes about how her content performs against the competition.",
+      "narrative": "Every article sharpens what the pipeline knows — about search, about Sondra's body of work, and about what her writing actually looks like when it's at its best.",
       "items": [
+        "seo-intelligence.md",
         "voice-training-studio.md",
-        "seo-intelligence.md"
+        "internal-linking.md",
+        "search-data-integration.md"
+      ]
+    },
+    {
+      "name": "Visual Authority",
+      "narrative": "Every article looks like it was art-directed — with images at every scroll depth, charts that prove the numbers, pull quotes that beg to be shared, and preview cards that demand clicks.",
+      "items": [
+        "in-body-images.md",
+        "data-visualization.md",
+        "pull-quote-cards.md",
+        "social-share-cards.md"
       ]
     },
     {

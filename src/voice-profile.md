@@ -55,11 +55,15 @@ This profile defines how articles should sound. The AI writing agent uses this a
 
 ## Topic Lens
 
+Sondra's audience is founders and CEOs of digital-first businesses: online course creators, coaches, membership communities, and digital agencies. They are smart about their business but not technical. They understand AI is important but feel overwhelmed by the hype, don't know where to start, and need plain-language explanations that connect AI concepts directly to business outcomes they actually care about.
+
 Sondra's specific angle on AI: the gap between the pitch deck and the payoff. She's interested in:
+- What founders should actually DO with AI right now, especially with their proprietary data (course content, client knowledge bases, community history)
 - What to actually do with proprietary data (12 million words of content, client knowledge bases, etc.)
-- RAG vs fine-tuning vs other approaches, practically
-- Who's working on what and whether it matters
+- RAG vs fine-tuning vs other approaches, explained in plain language with real costs
+- Who's working on what and whether it matters for non-technical business owners
 - What she should advise clients to do right now
 - The business reality behind the technical capability
+- Real stories of businesses using AI to save time, cut costs, or grow revenue
 
-She's not interested in breathless coverage of every new model release. She cares about what actually works, what's worth building, and what's still vaporware.
+She's not interested in breathless coverage of every new model release. She cares about what actually works, what's worth building, and what's still vaporware. Topics should be ones where a non-technical founder reads the headline and thinks "I need to understand this."

@@ -1,6 +1,6 @@
-import { auth, mindstudio } from '@mindstudio-ai/agent';
+import { auth } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
-import { IMAGE_STYLE_ANCHOR } from './common/voiceProfile';
+import { pickImageConcept, renderStillLife } from './common/generateStillLife';
 
 export async function regenerateImage(input: { id: string }) {
   auth.requireRole('admin');
@@ -8,19 +8,24 @@ export async function regenerateImage(input: { id: string }) {
   const article = await Articles.get(input.id);
   if (!article) throw new Error('Article not found.');
 
-  try {
-    const { imageUrl } = await mindstudio.generateImage({
-      prompt: `${IMAGE_STYLE_ANCHOR} Objects that metaphorically relate to the topic: "${article.title}". Choose 3-4 abstract objects from: smooth ceramic spheres, stacked river stones, frosted glass cubes, glass vessels with pale liquid, folded handmade paper, coiled linen thread, dried botanical stems, small brass geometric shapes, smooth wooden blocks, brass keys. Arrange thoughtfully with generous negative space.`,
-      imageModelOverride: {
-        model: 'seedream-4.5',
-        config: {
-          width: 2048,
-          height: 1076,
-        },
-      },
-    });
+  // Pick a new concept, then render the image. Shared with startArticle so
+  // regenerations use the same brand bank and concept-first approach.
+  const concept = await pickImageConcept({
+    context: `Article title: ${article.title}
+Focus keyword: ${article.focusKeyword || 'n/a'}
+Excerpt: ${article.excerpt || 'n/a'}
+Article opening:
+${(article.body || '').split('\n').slice(0, 12).join('\n').substring(0, 600)}
 
-    const updated = await Articles.update(input.id, { imageUrl: imageUrl as string });
+This is the HERO image for the article. It should represent the article's overall core idea, not one specific section. This is a REGENERATION, so try a different combination from what the article currently has if possible.`,
+  });
+
+  try {
+    const imageUrl = await renderStillLife(concept);
+    const updated = await Articles.update(input.id, {
+      imageUrl,
+      coverImageAlt: concept.altText,
+    });
     return { article: updated };
   } catch (err) {
     console.error('Image regeneration failed:', err);

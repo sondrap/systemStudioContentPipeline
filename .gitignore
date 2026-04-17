@@ -1,1 +1,9 @@
 node_modules/
+
+# Internal state files from the development environment
+# (session transcripts, stats, sandbox state — not part of the app)
+.remy-*
+.project-status.json
+.sandbox-state.json
+.logs/
+.publish-config.json

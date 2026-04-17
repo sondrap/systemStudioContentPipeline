@@ -1,5 +1,41 @@
-import { db, auth, mindstudio } from '@mindstudio-ai/agent';
+import { db, auth } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
+
+// Load publish API credentials. In production, these come from process.env
+// (set via `mindstudio-prod secrets set PUBLISH_API_URL --dev ... --prod ...`).
+// In the dev sandbox, process.env is not currently being populated by the
+// tunnel, so we fall back to a gitignored local config file. The file is
+// never committed, so production never reads from it.
+async function getPublishCredentials() {
+  const env = (globalThis as any).process?.env ?? {};
+  const envUrl = env.PUBLISH_API_URL;
+  const envToken = env.PUBLISH_API_TOKEN;
+  if (envUrl && envToken) {
+    return { url: envUrl, token: envToken, source: 'env' as const };
+  }
+
+  // ESM sandbox: dynamic import of node:fs to read local config fallback.
+  try {
+    const fs = await import('node:fs');
+    const cwd = (globalThis as any).process?.cwd?.() ?? '.';
+    const filePath = `${cwd}/.publish-config.json`;
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf8');
+      const config = JSON.parse(raw);
+      if (config.PUBLISH_API_URL && config.PUBLISH_API_TOKEN) {
+        return {
+          url: envUrl || config.PUBLISH_API_URL,
+          token: envToken || config.PUBLISH_API_TOKEN,
+          source: 'config-file' as const,
+        };
+      }
+    }
+  } catch {
+    // Fall through to missing
+  }
+
+  return { url: envUrl, token: envToken, source: 'missing' as const };
+}
 
 export async function publishArticle(input: { id: string }) {
   auth.requireRole('admin');
@@ -17,48 +53,74 @@ export async function publishArticle(input: { id: string }) {
 
   const publishedAt = db.now();
 
-  // Try to publish to the main site API
-  const apiUrl = process.env.PUBLISH_API_URL;
-  const apiToken = process.env.PUBLISH_API_TOKEN;
+  // Try to publish to the main site API. Credentials come from process.env
+  // in production or from .publish-config.json in the dev sandbox.
+  const { url: apiUrl, token: apiToken, source: credentialSource } = await getPublishCredentials();
+  console.log(`Publish credentials source: ${credentialSource}`);
 
   let publishedUrl: string | undefined;
 
   if (apiUrl && apiToken) {
     try {
-      const response = await mindstudio.httpRequest({
-        url: apiUrl,
+      // Payload matches systemstudio.ai Journal API spec (see
+      // src/references/journal-content-spec.md). The API upserts on slug,
+      // so re-publishing the same article updates the existing post.
+      const payload = {
+        title: article.title,
+        slug,
+        excerpt: article.excerpt || article.metaDescription || '',
+        body: article.body || '',
+        tags: article.tags || [],
+        publishedAt: new Date(publishedAt).toISOString(),
+        coverImageUrl: article.imageUrl || '',
+        coverImageAlt: article.coverImageAlt || article.title,
+        ogDescription: article.ogDescription || article.excerpt || '',
+        isPublished: true,
+        // Additional SEO metadata — sent for the blog to use in structured
+        // data and future SEO features. Ignored if the blog doesn't use them.
+        metaDescription: article.metaDescription || article.ogDescription || article.excerpt || '',
+        focusKeyword: article.focusKeyword || '',
+        seoKeywords: article.seoKeywords || [],
+      };
+
+      // Use native fetch directly. The MindStudio httpRequest wrapper was
+      // returning success responses without actually reaching the external
+      // server, so we go direct.
+      const fetchStart = Date.now();
+      const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: JSON.stringify({
-          'Authorization': `Bearer ${apiToken}`,
+        headers: {
+          // MindStudio reserves the Authorization header for its own auth,
+          // so the journal API uses X-API-Key for app-level authentication.
+          'X-API-Key': apiToken,
           'Content-Type': 'application/json',
-        }),
-        body: JSON.stringify({
-          title: article.title,
-          slug,
-          excerpt: article.excerpt || article.metaDescription || '',
-          body: article.body || '',
-          tags: article.tags || [],
-          publishedAt: new Date(publishedAt).toISOString(),
-          coverImageUrl: article.imageUrl || '',
-          coverImageAlt: article.coverImageAlt || article.title,
-          ogDescription: article.ogDescription || article.excerpt || '',
-        }),
+        },
+        body: JSON.stringify(payload),
       });
 
-      // Try to extract published URL from response
+      const responseText = await response.text();
+      const fetchDuration = Date.now() - fetchStart;
+
+      console.log(`Publish API: ${response.status} ${response.statusText} in ${fetchDuration}ms. Body: ${responseText.slice(0, 500)}`);
+
+      if (!response.ok) {
+        throw new Error(`Publishing failed: ${response.status} ${response.statusText}. ${responseText.slice(0, 300)}`);
+      }
+
+      // Parse the response to extract the published URL
       try {
-        const responseData = JSON.parse(response.response as string);
+        const responseData = JSON.parse(responseText);
         publishedUrl = responseData.url || responseData.publishedUrl;
       } catch {
-        // Response wasn't JSON, that's OK
+        // Response wasn't JSON, fall back below
       }
 
       if (!publishedUrl) {
         publishedUrl = `https://systemstudio.msagent.ai/journal/${slug}`;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to publish to main site:', err);
-      throw new Error('Publishing failed. Check that the API endpoint is configured correctly.');
+      throw new Error(err?.message || 'Publishing failed. Check that the API endpoint is configured correctly.');
     }
   } else {
     // Dry run mode: mark as published locally

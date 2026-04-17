@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import { api, Topic } from '../api';
-import { IconPlus, IconSearch, IconArchive, IconLoader2, IconDots, IconRocket, IconTrash } from '@tabler/icons-react';
+import { IconPlus, IconSearch, IconArchive, IconLoader2, IconDots, IconRocket, IconTrash, IconRadar2, IconCompass, IconCheck, IconRefresh, IconTrendingUp, IconKey } from '@tabler/icons-react';
 import { useLocation } from 'wouter';
 
 function formatDate(ts?: number) {
@@ -27,6 +27,13 @@ export function BacklogPage() {
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [startingResearch, setStartingResearch] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [refreshing, setRefreshing] = useState<string | null>(null);
+  const editorialDirection = useStore((s) => s.editorialDirection);
+  const setEditorialDirection = useStore((s) => s.setEditorialDirection);
+  const [directionDraft, setDirectionDraft] = useState<string | null>(null);
+  const [savingDirection, setSavingDirection] = useState(false);
+  const [directionSaved, setDirectionSaved] = useState(false);
 
   // Filter to backlog topics and sort
   const topics = allTopics
@@ -89,6 +96,65 @@ export function BacklogPage() {
     }
   };
 
+  const loadData = useStore((s) => s.loadData);
+
+  const handleSaveDirection = async () => {
+    if (directionDraft === null) return;
+    setSavingDirection(true);
+    try {
+      await api.updateEditorialDirection({ direction: directionDraft });
+      setEditorialDirection(directionDraft);
+      setDirectionDraft(null);
+      setDirectionSaved(true);
+      setTimeout(() => setDirectionSaved(false), 2000);
+    } catch (err: any) {
+      console.error('Failed to save editorial direction:', err);
+    } finally {
+      setSavingDirection(false);
+    }
+  };
+
+  const handleRefreshTopic = async (topicId: string) => {
+    if (refreshing) return;
+    setRefreshing(topicId);
+    try {
+      const { topic: updated } = await api.refreshTopic({ topicId });
+      updateTopicLocal(topicId, updated);
+      setSelectedTopic(updated as Topic);
+    } catch (err: any) {
+      alert(err.message || 'Could not refresh topic.');
+    } finally {
+      setRefreshing(null);
+    }
+  };
+
+  const handleScan = async () => {
+    if (scanning) return;
+    setScanning(true);
+    const topicCountBefore = allTopics.filter(t => t.status === 'backlog').length;
+    try {
+      await api.scanTopics();
+      // Poll for new topics every 5 seconds (scan takes 2-4 minutes)
+      const pollInterval = setInterval(async () => {
+        await loadData();
+        const currentCount = useStore.getState().topics.filter(t => t.status === 'backlog').length;
+        if (currentCount > topicCountBefore) {
+          // New topics arrived
+          clearInterval(pollInterval);
+          setScanning(false);
+        }
+      }, 5000);
+      // Stop polling after 5 minutes max
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        setScanning(false);
+      }, 300000);
+    } catch (err: any) {
+      alert(err.message || 'Topic scan failed.');
+      setScanning(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', height: '100%' }}>
       {/* Main list */}
@@ -114,9 +180,64 @@ export function BacklogPage() {
               style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, flex: 1, color: 'var(--text-primary)' }}
             />
           </div>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={handleScan}
+            disabled={scanning}
+            title="Scan the web for trending topics"
+          >
+            {scanning ? <IconLoader2 size={14} className="spinner" /> : <IconRadar2 size={14} stroke={1.5} />}
+            {scanning ? 'Scanning the web...' : 'Scan for Topics'}
+          </button>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
             <IconPlus size={14} stroke={2} /> Add Topic
           </button>
+        </div>
+
+        {/* Editorial Direction */}
+        <div style={{ padding: '0 24px 16px' }}>
+          <div style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 12,
+            padding: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <IconCompass size={14} stroke={1.5} color="var(--accent)" />
+              <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                Editorial Direction
+              </span>
+              {directionSaved && (
+                <span style={{ fontSize: 11, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+                  <IconCheck size={12} stroke={2} /> Saved
+                </span>
+              )}
+            </div>
+            <textarea
+              value={directionDraft !== null ? directionDraft : editorialDirection}
+              onChange={(e) => setDirectionDraft(e.target.value)}
+              onBlur={() => {
+                if (directionDraft !== null && directionDraft !== editorialDirection) {
+                  handleSaveDirection();
+                } else {
+                  setDirectionDraft(null);
+                }
+              }}
+              placeholder="What are you focused on right now? The topic scanner reads this every time it runs. e.g., 'Interested in AI tools course creators can use without a developer. Done with chatbot topics for now.'"
+              rows={2}
+              style={{
+                width: '100%',
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                fontSize: 13,
+                lineHeight: 1.6,
+                color: 'var(--text-primary)',
+                resize: 'none',
+                fontFamily: 'inherit',
+              }}
+            />
+          </div>
         </div>
 
         {/* List */}
@@ -151,8 +272,10 @@ export function BacklogPage() {
                   Add one manually, or ask the agent what's worth writing about this week.
                 </p>
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>Add Topic</button>
-                  <button className="btn btn-ghost" onClick={() => navigate('/chat')}>Ask the Agent</button>
+                  <button className="btn btn-primary" onClick={handleScan} disabled={scanning}>
+                    {scanning ? <><IconLoader2 size={14} className="spinner" /> Scanning...</> : 'Scan for Topics'}
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => setShowAddModal(true)}>Add Manually</button>
                 </div>
               </div>
             </div>
@@ -190,7 +313,14 @@ export function BacklogPage() {
                         <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic', flexShrink: 0 }}>Suggested</span>
                       )}
                     </div>
+                    {topic.suggestedKeyword && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                        <IconKey size={10} stroke={1.5} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{topic.suggestedKeyword}</span>
+                      </div>
+                    )}
                   </div>
+                  {topic.seoOpportunity && <SeoOpportunityBadge level={topic.seoOpportunity} />}
                   <span className="overline" style={{ flexShrink: 0, fontSize: 11 }}>{formatDate(topic.created_at)}</span>
                 </div>
               ))}
@@ -215,8 +345,31 @@ export function BacklogPage() {
         }}>
           <h3 style={{ fontSize: 18, fontWeight: 500, lineHeight: 1.3 }}>{selectedTopic.title}</h3>
 
-          {selectedTopic.priority === 'high' && (
-            <span className="tag tag-review" style={{ alignSelf: 'flex-start' }}>High Priority</span>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {selectedTopic.priority === 'high' && (
+              <span className="tag tag-review">High Priority</span>
+            )}
+            {selectedTopic.seoOpportunity && (
+              <SeoOpportunityBadge level={selectedTopic.seoOpportunity} detailed />
+            )}
+          </div>
+
+          {selectedTopic.suggestedKeyword && (
+            <div style={{
+              padding: '10px 12px',
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              display: 'flex', flexDirection: 'column', gap: 4,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <IconKey size={12} stroke={1.5} /> Suggested Keyword
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>{selectedTopic.suggestedKeyword}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>
+                Starting keyword target. The AI will refine it during drafting.
+              </div>
+            </div>
           )}
 
           {selectedTopic.description && (
@@ -230,7 +383,22 @@ export function BacklogPage() {
             </div>
           )}
 
-          {selectedTopic.sourceUrls && selectedTopic.sourceUrls.length > 0 && (
+          {/* Rich sources with dates */}
+          {selectedTopic.sources && selectedTopic.sources.length > 0 ? (
+            <div>
+              <span className="overline">Sources</span>
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {selectedTopic.sources.map((source, i) => (
+                  <a key={i} href={source.url} target="_blank" rel="noopener" style={{ fontSize: 12, display: 'flex', flexDirection: 'column', gap: 2, textDecoration: 'none' }}>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 500, lineHeight: 1.3 }}>{source.title || new URL(source.url).hostname}</span>
+                    <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
+                      {source.date ? `${source.date} · ` : ''}{new URL(source.url).hostname}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : selectedTopic.sourceUrls && selectedTopic.sourceUrls.length > 0 ? (
             <div>
               <span className="overline">Sources</span>
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -242,7 +410,7 @@ export function BacklogPage() {
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
 
           <div style={{ flex: 1 }} />
 
@@ -255,6 +423,14 @@ export function BacklogPage() {
             >
               {startingResearch === selectedTopic.id ? <IconLoader2 size={14} className="spinner" /> : <IconRocket size={14} stroke={1.5} />}
               Start Research
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => handleRefreshTopic(selectedTopic.id)}
+              disabled={refreshing === selectedTopic.id}
+              style={{ width: '100%' }}
+            >
+              {refreshing === selectedTopic.id ? <><IconLoader2 size={14} className="spinner" /> Finding recent sources...</> : <><IconRefresh size={14} stroke={1.5} /> Find Recent Sources</>}
             </button>
             <button
               className="btn btn-danger btn-sm"
@@ -328,5 +504,39 @@ export function BacklogPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function SeoOpportunityBadge({ level, detailed }: { level: 'high' | 'moderate' | 'low'; detailed?: boolean }) {
+  const config = {
+    high: { label: 'High SEO', color: 'var(--accent)', bg: '#57726720' },
+    moderate: { label: 'Moderate SEO', color: '#D4A017', bg: '#D4A01720' },
+    low: { label: 'Low SEO', color: 'var(--text-tertiary)', bg: 'var(--surface-hover)' },
+  }[level];
+
+  if (detailed) {
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        padding: '3px 8px', borderRadius: 4,
+        fontSize: 11, fontWeight: 500, letterSpacing: '0.02em',
+        background: config.bg, color: config.color,
+      }}>
+        <IconTrendingUp size={11} stroke={2} />
+        {config.label}
+      </span>
+    );
+  }
+
+  // Compact (list row) version: just a colored pill with short label
+  return (
+    <span style={{
+      flexShrink: 0,
+      padding: '2px 7px', borderRadius: 4,
+      fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase',
+      background: config.bg, color: config.color,
+    }}>
+      {level === 'high' ? 'SEO↑' : level === 'moderate' ? 'SEO~' : 'SEO↓'}
+    </span>
   );
 }

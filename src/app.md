@@ -11,6 +11,31 @@ A content authoring tool for Sondra Patton (SystemStudio.ai) that automates the 
 This is a single-user tool. Sondra is the only user. Auth exists to protect the tool (email-code login), not to manage multiple users. One role: `admin`. The auth table doubles as her profile.
 ~~~
 
+## The Audience
+
+The pipeline is not generic. Every stage is oriented toward a specific [ideal customer]{Non-technical founders and small business owners under $50M revenue. Full profile in `src/audience.md`, source research in `src/references/audience-research.md`.}: non-technical founders who want relief from AI-related pain, not more AI technology to manage.
+
+The audience profile (`src/audience.md`) is read by the research scanner, the drafting agent, and the revision agent. It shapes:
+
+- **What topics get proposed.** The scanner weights audience pain (tool sprawl, AI anxiety, investor pressure, hype skepticism) heavily and rejects topics that only work from a practitioner angle.
+- **Where research is sourced from.** Research prioritizes audience sources (r/Entrepreneur, r/smallbusiness, r/AiForSmallBusiness, LinkedIn founder voices) over signal sources (practitioner channels, AI frameworks, technical newsletters). The best topics sit at the intersection.
+- **How articles get written.** The drafting prompt includes explicit instruction to speak TO the non-technical founder, translate or avoid jargon, anchor examples in small business reality, and validate the reader's overwhelm before instructing.
+- **How revisions stay on-track.** The send-back prompt carries the same audience lens so that even during revisions the voice stays oriented at the reader, not at the technology.
+
+~~~
+**Exported constants in `dist/methods/src/common/voiceProfile.ts`:**
+- `VOICE_PROFILE` — how Sondra writes (her voice characteristics)
+- `AUDIENCE_PROFILE` — who she's writing FOR (the ICP)
+- `RESEARCH_SOURCES` — split into AUDIENCE sources (primary) and SIGNAL sources (secondary) with explicit guidance on finding intersections
+- `IMAGE_STYLE_ANCHOR` — editorial still-life style specification
+
+These are imported by `scanTopics.ts`, `startArticle.ts`, and `sendBack.ts`. When the audience changes or expands, update `src/audience.md` and `AUDIENCE_PROFILE` together; they should stay in sync.
+
+**Why this matters:** Without an explicit audience lens, the research agent drifts toward what it finds novel in AI (which tends practitioner-technical). The audience profile acts as a filter: every topic, every paragraph must earn its place by landing with the ICP.
+~~~
+
+In the article editor sidebar, a "Writing For" card shows a one-liner version of the ICP at the moment of review, reminding Sondra who the content is targeting while she edits.
+
 ## The Pipeline
 
 Every article moves through four stages: [Researching]{AI agents actively gathering information from sources, summarizing findings, identifying key angles}, [Drafting]{AI writes the article using research findings and Sondra's voice profile}, [Review]{Article is ready for Sondra to read, edit, and approve}, and [Published]{Article has been sent to systemstudio.ai and is live}.
@@ -64,34 +89,42 @@ Writing also runs as a background task. Transitions to `review` when complete.
 
 ### Image Generation
 
-Each article gets a hero image in the [Editorial Still Life]{Painterly object compositions on a linen surface, with objects chosen to metaphorically relate to the article topic. All images share the same lighting, surface, and palette so they look cohesive on the blog listing page.} style.
+Each article gets multiple images: **one hero image at the top** plus **two in-body images** placed at natural break points. Total of three images per article, which hits the industry minimum and creates visual rhythm through the piece. All images share the same [Editorial Still Life]{Painterly object compositions on a linen surface, with objects chosen to metaphorically relate to the article topic. All images share the same lighting, surface, and palette so they look cohesive.} style.
 
 ~~~
-Use `generateImage` with a prompt assembled from three parts:
+**Why three images, not one.** Research on blog post best practices (see `src/references/image-best-practices.md`) shows posts with an image at every scroll depth are shared 2x as often as text-heavy posts and retain readers dramatically better. A single hero image is not enough for a 1,500+ word article.
 
-**Style Anchor (constant, never changes):**
+**The three-image pipeline:**
+
+1. **Pick body break points.** The AI analyzes the article (titled, with H2 headings finalized) and picks exactly 2 H2 headings after which to place an in-body image. Avoids the first H2 (too close to hero) and the last H2 (conclusion doesn't need a visual break). Each pick includes an article-specific concept: objects chosen from the brand bank plus a statement of what each object means in THIS section's argument.
+
+2. **Pick hero concept.** A separate concept for the whole-article metaphor, with `avoidObjects` set to the objects already reserved for body images so all three images use distinct object combinations.
+
+3. **Render all three in parallel.** `Promise.all` with `renderStillLife()` for the hero and each body image. Each call independently handles errors so one failure doesn't kill the others.
+
+4. **Insert body images into the markdown body.** Walk the body line by line. When a matching H2 heading is found, advance past the heading and the first paragraph of that section, then insert `![altText](imageUrl)` with blank lines on each side. This places the image partway into the section so the heading and opening thought stay together.
+
+**Break point selection rules:**
+- Articles with fewer than 3 H2 headings skip body images entirely (the article is too short to need them).
+- The AI returns headings that must match one of the provided H2s. If the AI paraphrases, we fuzzy match (lowercase substring match in either direction).
+- The two body images must use different object combinations from each other.
+
+**Style Anchor (constant, never changes across all three images):**
 "Soft-focus editorial still life composition in a painterly, slightly impressionistic rendering style, clearly not a photograph but evocative of one. Objects arranged on a pale linen surface (#F7F4F2). Soft directional window light from the upper left, casting long gentle shadows. Shallow depth of field with the background dissolving into a warm creamy blur. Color palette strictly restricted to: deep muted teal (#365367), sage green (#577267), blush pink (#ECD8DC), pale blue (#D4E4F1), warm linen white (#F7F4F2), and natural brass/gold. Premium editorial magazine aesthetic. Matte surfaces, no gloss. Generous negative space. Horizontal composition."
 
-**Objects (varies per article, 3-4 max):** Chosen by the AI to metaphorically relate to the article topic. Object bank:
-- Smooth ceramic sphere (Deep Current) = completeness, self-contained systems
-- Stacked flat river stones (Deep Current + Sage) = layering, foundations
-- Frosted glass cube (Morning Mist) = transparency, containment, data
-- Glass vessel with pale liquid (Morning Mist) = containment, volume, proprietary data
-- Folded handmade paper (Blush Veil) = drafts, documents, iterating
-- Coiled linen rope/thread (Linen) = connection, sequence, pipelines
-- Dried botanical stems (Sage Stone) = growth, organic processes
-- Small brass geometric shapes = precision, engineering, structure
-- Smooth wooden blocks (Sage Stone) = building blocks, modularity
-- Single brass key = access, unlocking, proprietary
+**Objects** are chosen from a fixed 10-item bank with symbolic meanings (ceramic sphere, river stones, glass cube, glass vessel, folded paper, linen rope, dried botanical stems, brass geometric shapes, wooden blocks, brass key). The AI MUST pick only from this bank.
 
 **Rules:**
 - No text in images
 - No screens, devices, or technology objects
 - No human figures or hands
 - 3-4 objects maximum per image
-- Generate at high resolution for 1200x630 hero crop and square thumbnail crop
+- Each object must have a clear, recognizable silhouette
+- Generate at 2048x1076 for 1200x630 hero crop and square thumbnail crop
 
-Generate as part of the drafting phase, in parallel with text generation. Store URL as `imageUrl`.
+The hero image's alt text is stored on `coverImageAlt` and displayed in the article editor sidebar as an "Image Concept" section. Body images get their alt text inlined into the markdown. The `regenerateImage` method regenerates only the hero, using the same shared helpers (`pickImageConcept` and `renderStillLife` in `dist/methods/src/common/generateStillLife.ts`).
+
+Generate as part of the drafting phase, after the SEO pass (because the focus keyword helps inform object selection).
 ~~~
 
 ### Review Phase
@@ -116,13 +149,72 @@ The publish method:
 If the API isn't configured yet, the publish action works in "dry run" mode: marks the article as published locally and stores the formatted data. The pipeline is fully functional before the main site integration is wired up.
 ~~~
 
+### SEO Integration
+
+SEO is woven through every pipeline stage rather than treated as a separate step. The goal is for articles to arrive at the review phase already optimized, with clear visibility into what matters for search so Sondra can edit with confidence.
+
+**At the topic stage**, the scanner researches keyword opportunity for each topic it proposes. For every topic, it identifies the best [focus keyword]{A 2-4 word phrase a reader would actually type into Google. Must reflect search intent, not just topic relevance.} and assesses [SEO opportunity]{One of `high`, `moderate`, or `low`. Based on estimated search volume, competition from major publications, and whether there's a clear angle for a plain-language business take.}. Sondra sees this signal on every topic in the backlog so she can prioritize what to write based on real search demand.
+
+~~~
+Topics table gets two new columns: `seoOpportunity` ('high' | 'moderate' | 'low') and `suggestedKeyword` (string).
+
+The `scanTopics` task agent is extended to research keyword opportunity as part of its scan. The agent searches Google for the candidate keyword, assesses result quality, and returns `suggestedKeyword` and `seoOpportunity` alongside each topic.
+~~~
+
+**At the research stage**, the research agent analyzes the top 3-5 Google results for each topic to understand what competitors are covering. It extracts common keywords across competing articles and identifies content gaps (angles, questions, or audience perspectives that competitors miss). This competitor intelligence is stored on the research brief and used by the writing agent to position the article distinctively.
+
+~~~
+The `researchBrief` field on articles gets a new `competitorInsights` sub-object:
+- `topArticles`: array of `{ url, title, focusKeyword?, wordCount? }` — the top 3-5 competing pieces
+- `commonKeywords`: array of strings — keywords used across multiple competitors
+- `gaps`: array of strings — angles competitors miss that create opportunity
+
+The research task agent is given instructions to do this analysis as part of its web search pass.
+~~~
+
+**At the writing stage**, the draft is produced with the topic's focus keyword already as a target. The writing prompt includes competitor gap analysis so the article naturally differentiates. The existing SEO optimization pass (which generates focus keyword, meta description, and OG description) refines but does not replace the topic-level keyword.
+
+**At the review stage**, the article editor shows a live SEO score panel. The panel includes:
+- A [live 0-100 score]{Computed client-side as the user edits. Updates in real time on every keystroke without a server round-trip.} based on 10 weighted checks
+- Each check shows [pass/fail status]{Green check for passing, warning icon for failing. Every check explains what's wrong and what to fix.} with specific detail
+- [Editable SEO fields]{Focus keyword, meta description, URL slug. Debounced save after 1.5s of inactivity.} for focus keyword, meta description, and slug
+- A [keyword highlight toggle]{When on, the article body renders as a read-only view with the focus keyword highlighted in gold. A "Back to editing" button returns to the editable textarea.} that highlights every occurrence of the focus keyword in the article body, so Sondra can see at a glance what's there for SEO vs what's safe to rephrase
+- The competitor insights from research (keywords, gaps, top articles) shown in a collapsible section for context while editing
+
+~~~
+The SEO checks (all weighted equally-ish, 5-15 points each):
+1. Focus keyword is set (10)
+2. Focus keyword in title (15)
+3. Focus keyword in first 150 words (15)
+4. Keyword density between 0.5% and 3.5% (10)
+5. Focus keyword in at least one H2 heading (10)
+6. Focus keyword in excerpt (5)
+7. Meta description is 120-165 characters (10)
+8. Article is 800+ words (10)
+9. URL slug is set (5)
+10. Article has 2+ H2 section headings (10)
+
+Score = round((earned weights / total weights) * 100).
+
+All scoring runs client-side in `utils/seoScore.ts`. No backend call needed.
+~~~
+
+**At the publish stage**, meta description length is validated before the Journal API call. The slug is generated from the title if not explicitly set. Any failing critical SEO checks are surfaced as non-blocking warnings so Sondra can make an informed decision to publish anyway or fix issues first.
+
 ## Topic Backlog
 
 Sondra maintains a backlog of topic ideas. Topics can enter the backlog from multiple sources:
 
 - **Agent-suggested topics:** The chat agent can scan Sondra's source ecosystem (newsletters, GitHub repos, YouTube channels, Reddit communities) and suggest topics based on what's trending, what's new, and what aligns with her content angle. Each suggestion includes a brief explanation of why it's worth writing about and links to relevant sources.
 - **Manual entry:** Sondra has an idea and adds it directly.
-- **Future: automated daily scanning** (see roadmap) where the agent proactively surfaces topics on a schedule without being asked.
+- **Automated scanning:** A cron job runs twice a week (Mondays and Thursdays at 7am CT) that searches the web for recent developments across Sondra's focus areas, checks against the existing backlog to avoid duplicates, and adds 3-5 fresh topic suggestions. Sondra can also trigger a scan manually from the Backlog page or by asking the chat agent.
+
+~~~
+The `scanTopics` method uses `runTask()` with `searchGoogle` and `scrapeUrl` tools to research trending developments. It checks existing topics and recent articles to avoid duplicates. The task agent produces structured suggestions with title, description, reasoning, priority, and source URLs. Results are added to the topics table as agent-suggested entries.
+
+Cron schedule: `0 12 * * 1,4` (Monday and Thursday at 12:00 UTC / 7am CT).
+Allows both `admin` and `system` roles so it works from both cron and manual triggers.
+~~~
 
 Each topic has a title, optional description, optional source URLs, and a [priority]{`high` or `normal`. High-priority topics surface at the top of the backlog.}. Topics sit in the backlog until Sondra explicitly approves one for research by clicking "Start Research." This is the checkpoint before the expensive research phase begins.
 

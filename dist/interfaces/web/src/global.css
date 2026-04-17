@@ -25,3 +25,87 @@ body {
 ::selection {
   background: rgba(54, 83, 103, 0.15);
 }
+
+/* Article preview styling — used when the editor is in Preview mode */
+.article-preview h1,
+.article-preview h2,
+.article-preview h3 {
+  font-family: 'Bespoke Serif', serif;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+  line-height: 1.2;
+}
+
+.article-preview h1 { font-size: 32px; }
+.article-preview h2 { font-size: 26px; }
+.article-preview h3 { font-size: 20px; }
+
+.article-preview p {
+  margin-bottom: 1.1em;
+}
+
+.article-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  margin: 2em 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.article-preview a,
+.article-preview a * {
+  color: var(--deep-current, #365367) !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(54, 83, 103, 0.4);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 120ms ease, opacity 120ms ease;
+}
+
+.article-preview a:hover {
+  opacity: 0.85;
+  text-decoration-color: currentColor;
+}
+
+.article-preview ul,
+.article-preview ol {
+  margin: 1em 0 1.2em 1.4em;
+}
+
+.article-preview li {
+  margin-bottom: 0.4em;
+}
+
+.article-preview strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.article-preview blockquote {
+  border-left: 3px solid var(--deep-current, #365367);
+  padding-left: 1em;
+  margin: 1.5em 0;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.article-preview hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2.5em 0;
+}
+
+.article-preview code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88em;
+  background: var(--surface-hover, #e8e1dc);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
