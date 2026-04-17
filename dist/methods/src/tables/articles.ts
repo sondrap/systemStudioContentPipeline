@@ -31,6 +31,9 @@ interface Article {
   articleType?: 'thought-leadership' | 'educational' | 'commentary' | 'mixed';
   tags?: string[];
   coverImageAlt?: string;
+  // List of objects chosen from the brand bank for this article's hero image.
+  // Used to avoid repeating object combinations in future articles.
+  heroImageObjects?: string[];
 }
 
 export const Articles = db.defineTable<Article>('articles');

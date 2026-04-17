@@ -16,13 +16,19 @@ export interface ImageConcept {
 // `context` should describe what this image needs to represent (article as a whole
 // for hero, specific section for body images). `avoidObjects` lets callers exclude
 // object names already used elsewhere in the article, so hero and body images use
-// different combinations.
+// different combinations. `recentCombinations` is a list of object sets used in the
+// most recent hero images, so the agent can pick a distinctly different combination.
 export async function pickImageConcept(opts: {
   context: string;
   avoidObjects?: string[];
+  recentCombinations?: string[][];
 }): Promise<ImageConcept> {
   const avoidLine = opts.avoidObjects && opts.avoidObjects.length > 0
     ? `\n\nAVOID these objects (already used elsewhere in this article): ${opts.avoidObjects.join(', ')}. Pick from the other objects in the bank instead.`
+    : '';
+
+  const recentLine = opts.recentCombinations && opts.recentCombinations.length > 0
+    ? `\n\nRECENT HERO IMAGES (the last few articles used these combinations): ${opts.recentCombinations.map((c, i) => `[${i + 1}] ${c.join(' + ')}`).join('; ')}. Pick a combination that shares at most ONE object with any of these. The reader should feel each article has its own distinct visual signature.`
     : '';
 
   const exampleConcept: ImageConcept = {
@@ -36,9 +42,9 @@ export async function pickImageConcept(opts: {
   };
 
   const { content } = await mindstudio.generateText({
-    message: `${opts.context}${avoidLine}
+    message: `${opts.context}${avoidLine}${recentLine}
 
-Choose 3-4 objects from the bank whose combined meanings tell a clear visual story.`,
+Choose 3-4 objects from the bank whose combined meanings tell a clear visual story. Also vary the composition from image to image: sometimes cluster objects tightly, sometimes arrange them asymmetrically with one off to the side, sometimes spread them more linearly. The composition field should describe a specific, intentional arrangement.`,
     modelOverride: {
       model: 'claude-4-6-sonnet',
       temperature: 0.7,

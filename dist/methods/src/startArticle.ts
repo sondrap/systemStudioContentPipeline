@@ -393,8 +393,22 @@ Output ONLY the rewritten meta description. No preamble, no quotes around it. Co
   });
 
   // Step 2: Pick a hero concept (whole-article metaphor). Avoid objects already
-  // reserved for body images so the three images feel distinct.
+  // reserved for body images so the three images feel distinct within this
+  // article, AND avoid combinations used in recent articles so the blog has
+  // visual variety across posts.
   const reservedObjects = breakPoints.flatMap(bp => bp.concept.objects.map(o => o.name));
+
+  // Query the last 6 articles that shipped with a hero image. Excludes this
+  // article itself in case of retries.
+  const recentArticles = await Articles
+    .filter(a => a.heroImageObjects !== null && a.heroImageObjects !== undefined && a.id !== articleId)
+    .sortBy(a => a.created_at)
+    .reverse()
+    .take(6);
+  const recentCombinations = recentArticles
+    .map(a => a.heroImageObjects)
+    .filter((c): c is string[] => Array.isArray(c) && c.length > 0);
+
   let heroConcept: ImageConcept;
   try {
     heroConcept = await pickImageConcept({
@@ -406,6 +420,7 @@ ${seoBody.split('\n').slice(0, 15).join('\n').substring(0, 800)}
 
 This is the HERO image for the article. It should represent the article's overall core idea, not one specific section. Pick objects whose combined meanings capture the whole argument.`,
       avoidObjects: reservedObjects,
+      recentCombinations,
     });
   } catch (err) {
     console.error(`[${articleId}] Hero concept generation failed:`, err);
@@ -455,6 +470,8 @@ This is the HERO image for the article. It should represent the article's overal
   if (heroUrl) {
     updates.imageUrl = heroUrl;
     updates.coverImageAlt = heroConcept.altText;
+    // Save the chosen objects so future articles can avoid repeating them
+    updates.heroImageObjects = heroConcept.objects.map(o => o.name);
   }
   await Articles.update(articleId, updates);
   console.log(`[${articleId}] Images complete. Hero: ${heroUrl ? 'yes' : 'failed'}. Body images: ${successfulBodyImages.length}/${breakPoints.length}`);
