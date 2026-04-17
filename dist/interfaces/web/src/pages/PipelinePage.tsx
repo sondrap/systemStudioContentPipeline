@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useStore } from '../store';
 import { api, Article, ArticleStatus } from '../api';
-import { IconLayoutKanban, IconRefresh, IconDots, IconTrash } from '@tabler/icons-react';
+import { IconLayoutKanban, IconRefresh, IconDots, IconTrash, IconDownload, IconLoader2 } from '@tabler/icons-react';
 
 const STAGES: { status: ArticleStatus; label: string; dotColor: string }[] = [
   { status: 'researching', label: 'Researching', dotColor: '#365367' },
@@ -200,6 +200,31 @@ export function PipelinePage() {
   const loading = useStore((s) => s.loading);
   const loadData = useStore((s) => s.loadData);
   const [, navigate] = useLocation();
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+
+  // Trigger import from systemstudio.ai for the empty-state case, used once
+  // per production app to pull already-published articles into the pipeline.
+  const handleImport = async () => {
+    setImporting(true);
+    setImportMessage(null);
+    try {
+      const result = await api.importPublishedArticles();
+      if (result.imported > 0) {
+        setImportMessage(`Imported ${result.imported} article${result.imported === 1 ? '' : 's'} from your site.`);
+        await loadData();
+      } else if (result.totalOnSite === 0) {
+        setImportMessage("No articles on your site yet. Publish one first.");
+      } else {
+        setImportMessage(`All ${result.totalOnSite} article${result.totalOnSite === 1 ? '' : 's'} on your site are already in the pipeline.`);
+        await loadData();
+      }
+    } catch (err: any) {
+      setImportMessage(err?.message || 'Import failed. Check credentials and try again.');
+    } finally {
+      setImporting(false);
+    }
+  };
 
   // Auto-refresh every 30s if there are articles in researching/drafting
   const hasInProgress = articles.some((a) => a.status === 'researching' || a.status === 'drafting');
@@ -288,6 +313,44 @@ export function PipelinePage() {
             <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
               <button className="btn btn-primary" onClick={() => navigate('/backlog')}>Browse Backlog</button>
               <button className="btn btn-ghost" onClick={() => navigate('/chat')}>Open Chat</button>
+            </div>
+            <div style={{
+              marginTop: 16,
+              paddingTop: 16,
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
+              width: '100%',
+            }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                Have articles already published on systemstudio.ai?
+              </div>
+              <button
+                onClick={handleImport}
+                disabled={importing}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: importing ? 'wait' : 'pointer',
+                }}
+              >
+                {importing
+                  ? <><IconLoader2 size={13} className="spinner" /> Importing...</>
+                  : <><IconDownload size={13} stroke={1.8} /> Import from site</>}
+              </button>
+              {importMessage && (
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, maxWidth: 380, textAlign: 'center' }}>
+                  {importMessage}
+                </div>
+              )}
             </div>
           </div>
         </div>
