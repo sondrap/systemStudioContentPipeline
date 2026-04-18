@@ -47,9 +47,14 @@ export function ChatPage() {
     setActiveThreadId(threadId);
     try {
       const thread = await chat.getThread(threadId);
+      // message.content is a plain string in the Interface SDK, not an array
+      // of content blocks. The previous code tried to read m.content[0].text
+      // which worked against a different content shape and blanked every
+      // message when the shape turned out to be a string (reading char 0 of
+      // the string then .text on a single char = undefined).
       const msgs: Message[] = (thread.messages || []).map((m: any) => ({
         role: m.role,
-        content: m.content?.[0]?.text || '',
+        content: typeof m.content === 'string' ? m.content : '',
       }));
       setMessages(msgs);
     } catch (err) {
