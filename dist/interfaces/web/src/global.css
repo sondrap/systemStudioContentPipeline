@@ -56,12 +56,30 @@ body {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
+/* Links inside article preview.
+ *
+ * Streamdown renders links with Tailwind utility classes (`wrap-anywhere
+ * font-medium text-primary underline`) and a `data-streamdown="link"`
+ * attribute. We don't have Tailwind loaded so those classes are no-ops, but
+ * we still target them specifically via the data attribute to be safe.
+ *
+ * We force font properties to inherit from the parent (17px Satoshi) so
+ * links render in the same visual size as surrounding body text. We also
+ * explicitly set font-style: normal because Satoshi doesn't ship italic
+ * variants, so ANY inherited italic would fall back to a serif system font
+ * that looks visibly smaller and out of place.
+ */
 .article-preview a,
-.article-preview a * {
+.article-preview a *,
+.article-preview [data-streamdown="link"],
+.article-preview [data-streamdown="link"] * {
   color: var(--deep-current, #365367) !important;
   font-size: inherit !important;
-  font-family: inherit !important;
-  font-weight: 500;
+  font-family: 'Satoshi', sans-serif !important;
+  font-style: normal !important;
+  font-weight: 500 !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-decoration-color: rgba(54, 83, 103, 0.4);
@@ -72,6 +90,24 @@ body {
 .article-preview a:hover {
   opacity: 0.85;
   text-decoration-color: currentColor;
+}
+
+/* Italic and bold inline elements — Streamdown's <em> and <strong>.
+ * Make sure these inherit font-size and font-family properly so they don't
+ * fall back to system serif when their weight or style isn't available in
+ * Satoshi's loaded set. */
+.article-preview em,
+.article-preview em * {
+  font-size: inherit !important;
+  font-family: 'Satoshi', sans-serif !important;
+  font-style: italic;
+}
+.article-preview [data-streamdown="strong"],
+.article-preview strong {
+  font-family: 'Satoshi', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: inherit !important;
+  color: var(--text-primary);
 }
 
 .article-preview ul,
