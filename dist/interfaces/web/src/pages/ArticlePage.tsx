@@ -356,7 +356,14 @@ export function ArticlePage() {
               color: 'var(--text-primary)',
               minHeight: 400,
             }}>
-              <Streamdown>{body}</Streamdown>
+              <Streamdown
+                // Streamdown defaults to showing a "Open external link?"
+                // confirmation modal on every link click. Sondra's articles
+                // are authored links (sources from her research, not user
+                // input), so this friction is not needed. Disable it so
+                // links just open in a new tab directly.
+                linkSafety={{ enabled: false }}
+              >{body}</Streamdown>
             </div>
           ) : highlightKeywords && article.focusKeyword ? (
             <div style={{ position: 'relative' }}>

@@ -73,6 +73,7 @@ body {
 .article-preview a *,
 .article-preview [data-streamdown="link"],
 .article-preview [data-streamdown="link"] * {
+  /* Typography — match body text exactly so links don't visually shrink */
   color: var(--deep-current, #365367) !important;
   font-size: inherit !important;
   font-family: 'Satoshi', sans-serif !important;
@@ -80,16 +81,28 @@ body {
   font-weight: 500 !important;
   line-height: inherit !important;
   letter-spacing: inherit !important;
+  /* Underline — full-strength, 1.5px, for real link signal without
+     introducing a second body-copy color. The underline carries the work. */
   text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-decoration-color: rgba(54, 83, 103, 0.4);
+  text-decoration-color: var(--deep-current, #365367);
+  text-decoration-thickness: 1.5px;
   text-underline-offset: 3px;
-  transition: text-decoration-color 120ms ease, opacity 120ms ease;
+  text-decoration-skip-ink: auto;
+  /* Padding + negative margin gives the hover highlight breathing room
+     without shifting surrounding text layout on hover */
+  padding: 0 2px;
+  margin: 0 -2px;
+  border-radius: 2px;
+  transition: background-color 180ms ease, text-decoration-color 180ms ease;
 }
 
-.article-preview a:hover {
-  opacity: 0.85;
-  text-decoration-color: currentColor;
+/* Blush Veil highlight on hover — an editorial "highlighter swipe" moment
+   that pulls the accent color into the reading surface. Tactile and quiet,
+   consistent with the Kinfolk/New Yorker register of the blog. */
+.article-preview a:hover,
+.article-preview [data-streamdown="link"]:hover {
+  background-color: var(--blush-veil, #ECD8DC);
+  text-decoration-color: var(--deep-current, #365367);
 }
 
 /* Italic and bold inline elements — Streamdown's <em> and <strong>.
