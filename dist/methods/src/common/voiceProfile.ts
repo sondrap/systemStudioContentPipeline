@@ -40,6 +40,14 @@ export const VOICE_PROFILE = `
 - Descriptive subheadings ("The Real Cost of Fine-Tuning") not generic ("Key Considerations")
 - Close with a practical takeaway or direct opinion, not a summary
 - Length: 800-2,500 words depending on depth. Never pad.
+
+**The Signature Close (REQUIRED):**
+Every article ends with Sondra's signature sign-off. After the final paragraph of real content, add a blank line, then exactly these two lines on their own:
+
+Don't overthink it,
+SP
+
+No hashtags, no em dashes, no extra text after SP. This is the signature move that closes every piece. Articles without it feel unfinished. If a draft is missing it, the final step is always to add it.
 `;
 
 // WHO the voice is speaking to. Used alongside VOICE_PROFILE so the pipeline

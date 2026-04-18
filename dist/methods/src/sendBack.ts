@@ -3,6 +3,7 @@ import { Articles } from './tables/articles';
 import { VOICE_PROFILE, AUDIENCE_PROFILE } from './common/voiceProfile';
 import { reviewSeoCritique } from './common/seoCritique';
 import { reviewDraftCritique } from './common/draftCritique';
+import { normalizeSignoff } from './common/signoff';
 
 export async function sendBack(input: { id: string; revisionNotes: string }) {
   auth.requireRole('admin');
@@ -70,6 +71,12 @@ Keep the same general structure unless the revision notes say otherwise.
 Preserve the audience orientation. Even when revising, stay speaking TO a non-technical founder, not ABOUT a technology. If the revision notes conflict with the audience lens, prioritize the revision notes (Sondra's judgment wins), but do not introduce new technical jargon or enterprise examples that the original draft avoided.
 **Preserve inline images** already in the draft (lines like \`![alt](https://i.mscdn.ai/...)\`) unless the revision notes explicitly say to remove them. The images were placed at specific break points for visual rhythm.
 **Preserve existing outbound links** and add more where revision notes request them. When referencing specific data, quotes, surveys, or claims, link inline using markdown link syntax. The sources listed in the Research Brief above have the URLs to use.
+**The article MUST end with Sondra's signature sign-off.** The very last thing in the article body, after the final content paragraph, must be a blank line and then these two lines on their own:
+
+Don't overthink it,
+SP
+
+Never put the sign-off mid-article. Never write it as a single line. If the original draft has the sign-off in the wrong place (e.g., mid-article), move it to the end. If the draft is missing it entirely, add it. The canonical form is two lines with "SP" alone on the last line.
 Output ONLY the revised article body in markdown. No preamble, no explanation.`,
     modelOverride: {
       model: 'claude-4-6-sonnet',
@@ -78,12 +85,17 @@ Output ONLY the revised article body in markdown. No preamble, no explanation.`,
     },
   });
 
-  const wordCount = content.split(/\s+/).filter(Boolean).length;
+  // Belt-and-suspenders: normalize the sign-off after the rewrite. If the
+  // model forgot it, added it mid-article, or wrote it on a single line,
+  // this makes it canonical. Runs deterministically so every revision ships
+  // with the correct close regardless of what the model does.
+  const normalizedContent = normalizeSignoff(content);
+  const wordCount = normalizedContent.split(/\s+/).filter(Boolean).length;
 
   // Save the rewritten body and clear revision notes first so the user sees
   // results quickly. Then kick off a fresh SEO critique against the new draft.
   await Articles.update(articleId, {
-    body: content,
+    body: normalizedContent,
     wordCount,
     status: 'review',
     revisionNotes: undefined,
@@ -96,7 +108,7 @@ Output ONLY the revised article body in markdown. No preamble, no explanation.`,
   const [seoResult, draftResult] = await Promise.all([
     reviewSeoCritique({
       title: article.title,
-      body: content,
+      body: normalizedContent,
       excerpt: article.excerpt || '',
       focusKeyword: article.focusKeyword || '',
       metaDescription: article.ogDescription || article.metaDescription || '',
@@ -107,7 +119,7 @@ Output ONLY the revised article body in markdown. No preamble, no explanation.`,
     }),
     reviewDraftCritique({
       title: article.title,
-      body: content,
+      body: normalizedContent,
       excerpt: article.excerpt || '',
     }).catch(err => {
       console.error(`[${articleId}] Draft critique refresh failed:`, err);

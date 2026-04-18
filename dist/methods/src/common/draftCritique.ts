@@ -92,6 +92,8 @@ ${VOICE_PROFILE}
 
 **6. Closing Payoff** — Does the article end with something concrete the reader can act on? Or does it trail off with more context on the problem? Sondra's best articles give the reader one specific thing to DO. A piece that diagnoses without prescribing leaves the reader with more anxiety, not less.
 
+**Note on the signature sign-off:** Every Sondra article ends with her signature close — the two lines "Don't overthink it," followed by "SP" on their own. This is the CORRECT closing and is the signature move. Do NOT flag it as misplaced or unusual when it appears at the very end of the article. Only flag it if (a) it is missing entirely, or (b) it appears mid-article with other content below it, or (c) it is written as a single line instead of two.
+
 ## Severity Levels
 
 - **critical** — The article has a real problem that will meaningfully hurt how it lands. Fix before publish.

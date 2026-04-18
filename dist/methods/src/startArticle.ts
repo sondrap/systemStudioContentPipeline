@@ -6,6 +6,7 @@ import { pickImageConcept, renderStillLife, ImageConcept } from './common/genera
 import { reviewSeoCritique } from './common/seoCritique';
 import { reviewDraftCritique } from './common/draftCritique';
 import { generateAllLinkedInPosts } from './common/linkedInPosts';
+import { normalizeSignoff } from './common/signoff';
 
 export async function startArticle(input: {
   topicId?: string;
@@ -184,6 +185,12 @@ Specifically:
 - Write in Markdown. Use ## for major sections, ### for subsections. Never use # (the title is separate).
 - Short punchy paragraphs (2-4 sentences).
 - Include a compelling excerpt (1-2 sentences) at the very beginning, separated by ---.
+- **Close every article with Sondra's signature sign-off.** The very last thing in the article body, after the final content paragraph, must be a blank line and then these two lines on their own:
+
+  Don't overthink it,
+  SP
+
+  This is non-negotiable. Never put the sign-off mid-article. Never write "Don't overthink it, SP" on one line. The comma goes after "it" with a line break, then "SP" alone on the next line.
 - End with --- followed by suggested tags from: strategy, ai-adoption, operations, case-study, tools, leadership, methodology
 - And an ogDescription (max 160 chars)
 - **Link to sources naturally.** When referencing specific data, quotes, surveys, or claims from the research, link to the source inline using markdown link syntax: \`[like this](https://example.com/source)\`. Aim for 2-5 outbound links across the article. The research brief above contains the URLs. These links build credibility and SEO authority. Do not pile links in a "sources" section at the end. Weave them into the prose where the fact or quote appears.
@@ -286,6 +293,7 @@ ${ogDescription}
 - Do not add "In this article, we'll explore..." or similar SEO filler.
 - Do not make the article longer just for SEO. Every sentence should earn its place.
 - Keep paragraphs short (2-4 sentences).
+- **Preserve the signature sign-off.** The original article ends with a blank line and then "Don't overthink it," on one line and "SP" on the next. This must remain the VERY LAST thing in the optimized article body. Never move it, never merge it, never write it as a single line. If the input article is missing the sign-off, add it at the end.
 
 ## Output Format
 Return the optimized article in this exact format:
@@ -329,6 +337,12 @@ TAGS: [comma-separated]
 
     seoBody = seoParts.slice(1).join('---').trim();
   }
+
+  // Normalize the signature sign-off: remove any mid-article instances and
+  // guarantee the article ends with exactly the right sign-off. This runs
+  // after the AI stages as a belt-and-suspenders safety net so no article
+  // ever ships without the canonical close, no matter what the model does.
+  seoBody = normalizeSignoff(seoBody);
 
   const seoWordCount = seoBody.split(/\s+/).filter(Boolean).length;
 

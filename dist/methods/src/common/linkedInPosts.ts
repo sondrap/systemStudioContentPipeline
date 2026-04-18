@@ -291,7 +291,8 @@ If the article genuinely lacks raw material for this post type, return content: 
 - Never use markdown in the post content (no **, no #, no >, no [](), no \`\`\`).
 - Arrows → and em dashes — are acceptable as text separators.
 - Hashtags at the very end only, 3-5 maximum, only if they genuinely relate.
-- Respect the character target for this post type. Going 20% over or under is fine; doubling or halving is not.`,
+- Respect the character target for this post type. Going 20% over or under is fine; doubling or halving is not.
+- **Do NOT include the article sign-off ("Don't overthink it, SP") in LinkedIn posts.** That's the signature close for blog articles only. LinkedIn posts end with their post-type-appropriate CTA instead (see the CTA Rules above). Strip any sign-off you find in the source article when reshaping for LinkedIn — do not carry it over.`,
     },
     structuredOutputType: 'json',
     structuredOutputExample: JSON.stringify(example),
