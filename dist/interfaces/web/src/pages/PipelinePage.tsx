@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useStore } from '../store';
 import { api, Article, ArticleStatus } from '../api';
-import { IconLayoutKanban, IconRefresh, IconDots, IconTrash, IconDownload, IconLoader2 } from '@tabler/icons-react';
+import { IconLayoutKanban, IconRefresh, IconDots, IconTrash, IconDownload, IconLoader2, IconAlertTriangle, IconPlayerPlay } from '@tabler/icons-react';
 
 const STAGES: { status: ArticleStatus; label: string; dotColor: string }[] = [
   { status: 'researching', label: 'Researching', dotColor: '#365367' },
@@ -16,13 +16,71 @@ function formatDate(ts?: number) {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// An article is considered "stuck" when it has been sitting in 'drafting' or
+// 'researching' for longer than the threshold below. The most common cause
+// is a deploy restarting the execution environment while the fire-and-forget
+// background chain was still running. Resume kicks the remaining stages
+// (hero image + critiques + LinkedIn posts) back into motion.
+const STUCK_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
+
+function isArticleStuck(article: Article): boolean {
+  if (article.status !== 'drafting' && article.status !== 'researching') return false;
+  const elapsed = Date.now() - article.updated_at;
+  return elapsed > STUCK_THRESHOLD_MS;
+}
+
+// Format a duration like "16h 4m" for the "stuck" label. We only care about
+// hours and minutes — anything in days would be VERY stuck and the label
+// gets capped at "24h+" because exact numbers past a day stop mattering.
+function formatStuckDuration(updatedAt: number): string {
+  const elapsedMs = Date.now() - updatedAt;
+  const hours = Math.floor(elapsedMs / (60 * 60 * 1000));
+  const minutes = Math.floor((elapsedMs % (60 * 60 * 1000)) / (60 * 1000));
+  if (hours >= 24) return '24h+';
+  if (hours >= 1) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 function ArticleCard({ article }: { article: Article }) {
   const [, navigate] = useLocation();
   const removeArticle = useStore((s) => s.removeArticle);
+  const updateArticleLocal = useStore((s) => s.updateArticleLocal);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [resuming, setResuming] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const stuck = isArticleStuck(article);
+  // Only 'drafting' is resumable — 'researching' means there's no body yet.
+  const canResume = stuck && article.status === 'drafting';
+
+  const handleResume = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setResuming(true);
+    setResumeError(null);
+    try {
+      const result = await api.resumeArticle({ id: article.id });
+      if (result.article) {
+        updateArticleLocal(article.id, {
+          status: result.article.status,
+          imageUrl: result.article.imageUrl,
+          coverImageAlt: result.article.coverImageAlt,
+          heroImageObjects: result.article.heroImageObjects,
+          seoCritique: result.article.seoCritique,
+          draftCritique: result.article.draftCritique,
+          linkedInPosts: result.article.linkedInPosts,
+          updated_at: result.article.updated_at,
+        });
+      }
+    } catch (err: any) {
+      console.error('Resume failed:', err);
+      setResumeError(err?.message || 'Resume failed. Try again.');
+    } finally {
+      setResuming(false);
+    }
+  };
 
   // Close menu on outside click
   useEffect(() => {
@@ -59,7 +117,15 @@ function ArticleCard({ article }: { article: Article }) {
     <div
       className="card card-interactive"
       onClick={() => navigate(`/articles/${article.id}`)}
-      style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 10, position: 'relative' }}
+      style={{
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        position: 'relative',
+        // Subtle amber accent for stuck cards — draws attention without alarming
+        ...(stuck ? { borderColor: '#C9932D50', background: '#D4A0170A' } : {}),
+      }}
     >
       {/* Three-dot menu */}
       <div ref={menuRef} style={{ position: 'absolute', top: 12, right: 12 }}>
@@ -153,6 +219,72 @@ function ArticleCard({ article }: { article: Article }) {
       <span className={`tag tag-${article.status}`}>
         {article.status}
       </span>
+
+      {/* Stuck indicator + resume button. Only appears when the article has
+          been sitting in drafting/researching for 15+ minutes, signaling the
+          background pipeline was interrupted. */}
+      {stuck && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            marginTop: 4,
+            padding: '10px 12px',
+            borderRadius: 8,
+            background: 'rgba(201, 147, 45, 0.1)',
+            border: '1px solid rgba(201, 147, 45, 0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+            <IconAlertTriangle size={13} stroke={2} color="#C9932D" style={{ flexShrink: 0, marginTop: 1 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#C9932D', lineHeight: 1.3 }}>
+                Stuck for {formatStuckDuration(article.updated_at)}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4, marginTop: 2 }}>
+                {canResume
+                  ? 'Background pipeline was interrupted. Resume to finish generating images, critiques, and LinkedIn posts.'
+                  : 'Stuck in research with no body yet. Delete and re-start to recover.'}
+              </div>
+            </div>
+          </div>
+
+          {canResume && (
+            <button
+              onClick={handleResume}
+              disabled={resuming}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                width: '100%',
+                padding: '6px 10px',
+                borderRadius: 6,
+                border: '1px solid #C9932D',
+                background: resuming ? '#C9932D30' : '#C9932D',
+                color: resuming ? '#C9932D' : 'white',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: resuming ? 'wait' : 'pointer',
+                transition: 'all 150ms',
+              }}
+            >
+              {resuming
+                ? <><IconLoader2 size={12} className="spinner" /> Resuming... (~1-2m)</>
+                : <><IconPlayerPlay size={12} stroke={2} /> Resume pipeline</>}
+            </button>
+          )}
+
+          {resumeError && (
+            <div style={{ fontSize: 11, color: '#C25D42', lineHeight: 1.4 }}>
+              {resumeError}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

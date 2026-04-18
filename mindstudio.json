@@ -45,7 +45,8 @@
     { "id": "import-published-articles", "name": "Import Published Articles", "path": "dist/methods/src/importPublishedArticles.ts", "export": "importPublishedArticles" },
     { "id": "generate-linkedin-posts", "name": "Generate LinkedIn Posts", "path": "dist/methods/src/generateLinkedInPosts.ts", "export": "generateLinkedInPosts" },
     { "id": "regenerate-linkedin-post", "name": "Regenerate LinkedIn Post", "path": "dist/methods/src/regenerateLinkedInPost.ts", "export": "regenerateLinkedInPost" },
-    { "id": "update-linkedin-post", "name": "Update LinkedIn Post", "path": "dist/methods/src/updateLinkedInPost.ts", "export": "updateLinkedInPost" }
+    { "id": "update-linkedin-post", "name": "Update LinkedIn Post", "path": "dist/methods/src/updateLinkedInPost.ts", "export": "updateLinkedInPost" },
+    { "id": "resume-article", "name": "Resume Article", "path": "dist/methods/src/resumeArticle.ts", "export": "resumeArticle" }
   ],
 
   "interfaces": [

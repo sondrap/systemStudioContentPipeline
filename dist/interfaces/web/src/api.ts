@@ -105,6 +105,7 @@ export const api = createClient<{
   generateLinkedInPosts(input: { id: string }): Promise<{ article: Article; posts: NonNullable<Article['linkedInPosts']> }>;
   regenerateLinkedInPost(input: { articleId: string; variantId: string }): Promise<{ article: Article; post: NonNullable<Article['linkedInPosts']>[number] }>;
   updateLinkedInPost(input: { articleId: string; variantId: string; content?: string; postedAt?: number | null; notes?: string; delete?: boolean }): Promise<{ article: Article }>;
+  resumeArticle(input: { id: string }): Promise<{ article: Article; recovered: { heroImage: boolean; seoCritique: boolean; draftCritique: boolean; linkedInPosts: number } }>;
   captureQuickTopic(input: { rawInput: string }): Promise<{ topic: Topic }>;
   importPublishedArticles(): Promise<{ totalOnSite: number; imported: number; skipped: number; failed: number; details: any }>;
   searchWeb(input: { query: string }): Promise<{ results: any[] }>;
