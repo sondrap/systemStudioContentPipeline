@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useStore } from '../store';
 import { api, Article } from '../api';
-import { IconArrowLeft, IconLoader2, IconCheck, IconExternalLink, IconPhoto, IconTrash, IconPencil, IconHighlight, IconUsers, IconEye, IconCode, IconCloudOff } from '@tabler/icons-react';
+import { IconArrowLeft, IconLoader2, IconCheck, IconExternalLink, IconPhoto, IconTrash, IconPencil, IconHighlight, IconUsers, IconEye, IconCode, IconCloudOff, IconCloudUpload } from '@tabler/icons-react';
 import { Streamdown } from 'streamdown';
 import { SeoPanel } from '../components/SeoPanel';
 import { SeoCritiquePanel } from '../components/SeoCritiquePanel';
@@ -46,6 +46,11 @@ export function ArticlePage() {
   const [deletingArticle, setDeletingArticle] = useState(false);
   const [confirmUnpublish, setConfirmUnpublish] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
+  const [republishing, setRepublishing] = useState(false);
+  // Short-lived success toast that appears after a republish completes so
+  // Sondra knows the re-POST went through (since 'Published' badge doesn't
+  // change state between before/after republish).
+  const [republishedAt, setRepublishedAt] = useState<number | null>(null);
   const [highlightKeywords, setHighlightKeywords] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -152,6 +157,27 @@ export function ArticlePage() {
       alert(err.message || 'Delete failed.');
       setDeletingArticle(false);
       setConfirmDeleteArticle(false);
+    }
+  };
+
+  // Re-POST an already-published article to systemstudio.ai. Useful if the
+  // article somehow disappeared from the live site, the site dev redeployed
+  // and lost content, or the user just wants to push the latest version up.
+  // The systemstudio.ai API is upsert-on-slug so re-POSTing is safe — it
+  // updates the existing record or creates a new one.
+  const handleRepublish = async () => {
+    if (!articleId || republishing) return;
+    setRepublishing(true);
+    try {
+      const { article: updated } = await api.publishArticle({ id: articleId });
+      updateArticleLocal(articleId, updated);
+      setRepublishedAt(Date.now());
+      // Clear the success toast after a few seconds so it doesn't linger
+      setTimeout(() => setRepublishedAt(null), 6000);
+    } catch (err: any) {
+      alert(err.message || 'Republish failed. Check the logs for details.');
+    } finally {
+      setRepublishing(false);
     }
   };
 
@@ -572,10 +598,40 @@ export function ArticlePage() {
               }}>
                 <IconCheck size={16} /> Published
               </div>
+
+              {/* Republish: re-POST to systemstudio.ai. Useful when the
+                  article needs to be resent (site rebuild wiped data,
+                  content was edited after publish, etc.). Safe — the API
+                  is upsert-on-slug. */}
+              <button
+                onClick={handleRepublish}
+                disabled={republishing || unpublishing}
+                title="Push the current article to systemstudio.ai again. Safe — updates the existing post rather than duplicating."
+                style={{
+                  width: '100%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  border: `1px solid ${republishedAt ? 'var(--accent)' : 'var(--deep-current)'}`,
+                  background: republishedAt ? '#57726715' : 'transparent',
+                  color: republishedAt ? 'var(--accent)' : 'var(--deep-current)',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: republishing ? 'wait' : 'pointer',
+                  transition: 'all 150ms',
+                }}
+              >
+                {republishing
+                  ? <><IconLoader2 size={14} className="spinner" /> Republishing...</>
+                  : republishedAt
+                    ? <><IconCheck size={14} stroke={2} /> Re-sent to site</>
+                    : <><IconCloudUpload size={14} stroke={1.5} /> Republish to site</>}
+              </button>
+
               <button
                 onClick={handleUnpublish}
                 onMouseLeave={() => { if (confirmUnpublish && !unpublishing) setConfirmUnpublish(false); }}
-                disabled={unpublishing}
+                disabled={unpublishing || republishing}
                 style={{
                   width: '100%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
