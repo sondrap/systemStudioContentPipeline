@@ -4,6 +4,7 @@ import { useStore } from '../store';
 import { api, Article } from '../api';
 import { IconArrowLeft, IconLoader2, IconCheck, IconExternalLink, IconPhoto, IconTrash, IconPencil, IconHighlight, IconUsers, IconEye, IconCode, IconCloudOff, IconCloudUpload } from '@tabler/icons-react';
 import { Streamdown } from 'streamdown';
+import TextareaAutosize from 'react-textarea-autosize';
 import { SeoPanel } from '../components/SeoPanel';
 import { SeoCritiquePanel } from '../components/SeoCritiquePanel';
 import { DraftCritiquePanel } from '../components/DraftCritiquePanel';
@@ -394,10 +395,14 @@ export function ArticlePage() {
               </button>
             </div>
           ) : (
-            <textarea
+            <TextareaAutosize
               value={body}
               onChange={handleBodyChange}
               placeholder="Start writing, or wait for the AI to draft..."
+              minRows={20}
+              // TextareaAutosize measures scrollHeight on every value change
+              // and sets the height to match, so word-wrapped long paragraphs
+              // are fully visible. No manual \n counting or overflow clipping.
               style={{
                 width: '100%',
                 fontFamily: "'Satoshi', sans-serif",
@@ -409,10 +414,7 @@ export function ArticlePage() {
                 background: 'transparent',
                 outline: 'none',
                 resize: 'none',
-                minHeight: 400,
-                overflow: 'hidden',
               }}
-              rows={Math.max(20, (body.match(/\n/g) || []).length + 5)}
             />
           )}
         </div>
