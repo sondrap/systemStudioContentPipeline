@@ -1,5 +1,6 @@
 import { auth } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
+import { withDbRetry } from './common/retry';
 
 export async function updateArticle(input: {
   id: string;
@@ -40,6 +41,11 @@ export async function updateArticle(input: {
     updates.wordCount = input.body.split(/\s+/).filter(Boolean).length;
   }
 
-  const updated = await Articles.update(input.id, updates);
+  // Wrap the autosave in retry — this is the most frequently-called write
+  // in the app, so transient platform errors here are extra disruptive.
+  const updated = await withDbRetry(
+    () => Articles.update(input.id, updates),
+    { label: 'updateArticle.save' },
+  );
   return { article: updated };
 }

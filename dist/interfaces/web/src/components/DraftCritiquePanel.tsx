@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { IconAlertOctagon, IconAlertTriangle, IconInfoCircle, IconRefresh, IconChevronDown, IconChevronUp, IconLoader2, IconQuoteFilled } from '@tabler/icons-react';
 import { Article, api } from '../api';
 import { useStore } from '../store';
+import { friendlyErrorMessage } from '../utils/errorMessages';
 
 type Severity = 'critical' | 'should-fix' | 'nice-to-have';
 type Area = 'opening-hook' | 'audience-fit' | 'voice-consistency' | 'section-focus' | 'flow' | 'closing-payoff';
@@ -63,7 +64,7 @@ export function DraftCritiquePanel({ article, flushSave }: DraftCritiquePanelPro
       }
     } catch (err: any) {
       console.error('Draft critique failed:', err);
-      setRerunError(err?.message || 'Re-run failed. Try again.');
+      setRerunError(friendlyErrorMessage(err));
     } finally {
       setRerunning(false);
     }
@@ -219,7 +220,7 @@ export function DraftCritiquePanel({ article, flushSave }: DraftCritiquePanelPro
                   color: '#9A4531',
                   lineHeight: 1.5,
                 }}>
-                  Re-run failed: {rerunError}
+                  {rerunError}
                 </div>
               )}
 

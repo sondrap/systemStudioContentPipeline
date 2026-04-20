@@ -2,6 +2,7 @@ import { auth } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
 import { generateSinglePost, LinkedInPostType } from './common/linkedInPosts';
 import { generateImageForPost } from './common/linkedInImages';
+import { withDbRetry } from './common/retry';
 
 // Regenerate a single LinkedIn post variant by id, keeping the rest of the
 // variants intact. Used when Sondra doesn't like the angle of one variant
@@ -52,6 +53,9 @@ export async function regenerateLinkedInPost(input: { articleId: string; variant
     v.id === input.variantId ? newVariant : v
   );
 
-  const updated = await Articles.update(input.articleId, { linkedInPosts: updatedVariants });
+  const updated = await withDbRetry(
+    () => Articles.update(input.articleId, { linkedInPosts: updatedVariants }),
+    { label: 'regenerateLinkedInPost.save' },
+  );
   return { article: updated, post: newVariant };
 }

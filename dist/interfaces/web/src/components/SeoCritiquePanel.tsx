@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { IconAlertOctagon, IconAlertTriangle, IconInfoCircle, IconRefresh, IconChevronDown, IconChevronUp, IconLoader2, IconSparkles } from '@tabler/icons-react';
 import { Article, api } from '../api';
 import { useStore } from '../store';
+import { friendlyErrorMessage } from '../utils/errorMessages';
 
 type Severity = 'critical' | 'should-fix' | 'nice-to-have';
 type Area = 'headline' | 'opening' | 'meta-description' | 'structure' | 'differentiation' | 'intent-match';
@@ -70,7 +71,7 @@ export function SeoCritiquePanel({ article, flushSave }: SeoCritiquePanelProps) 
       }
     } catch (err: any) {
       console.error('SEO critique failed:', err);
-      setRerunError(err?.message || 'Re-run failed. Try again.');
+      setRerunError(friendlyErrorMessage(err));
     } finally {
       setRerunning(false);
     }
@@ -225,7 +226,7 @@ export function SeoCritiquePanel({ article, flushSave }: SeoCritiquePanelProps) 
                   color: '#9A4531',
                   lineHeight: 1.5,
                 }}>
-                  Re-run failed: {rerunError}
+                  {rerunError}
                 </div>
               )}
 

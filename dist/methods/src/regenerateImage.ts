@@ -1,6 +1,7 @@
 import { auth } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
 import { pickImageConcept, renderStillLife, ImageConcept } from './common/generateStillLife';
+import { withDbRetry } from './common/retry';
 
 // Regenerate the hero image for an article.
 //
@@ -89,14 +90,24 @@ This is the HERO image for the article. It should represent the article's overal
 
   try {
     const imageUrl = await renderStillLife(concept);
-    const updated = await Articles.update(input.id, {
-      imageUrl,
-      coverImageAlt: concept.altText,
-      heroImageObjects: concept.objects.map(o => o.name),
-    });
+    // Image generation took 5-15s. Retry the save through transient
+    // platform errors so we don't lose it.
+    const updated = await withDbRetry(
+      () => Articles.update(input.id, {
+        imageUrl,
+        coverImageAlt: concept.altText,
+        heroImageObjects: concept.objects.map(o => o.name),
+      }),
+      { label: 'regenerateImage.save' },
+    );
     return { article: updated };
   } catch (err) {
     console.error('Image regeneration failed:', err);
+    // If the error already came from withDbRetry, it has a friendly message.
+    // Otherwise this is a real image-rendering failure.
+    if (err instanceof Error && err.message.includes('platform')) {
+      throw err;
+    }
     throw new Error('Image generation failed. Try again.');
   }
 }

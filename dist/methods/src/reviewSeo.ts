@@ -1,6 +1,7 @@
 import { auth } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
 import { reviewSeoCritique } from './common/seoCritique';
+import { withDbRetry } from './common/retry';
 
 // Manually trigger an adversarial SEO review. Also runs automatically at the
 // end of startArticle and after sendBack, but Sondra can re-run it anytime
@@ -24,6 +25,11 @@ export async function reviewSeo(input: { id: string }) {
     competitorInsights: article.researchBrief?.competitorInsights,
   });
 
-  const updated = await Articles.update(input.id, { seoCritique: critique });
+  // Same retry rationale as reviewDraft: the critique took ~25s to generate.
+  // Don't throw away expensive AI work because of a transient Redis blip.
+  const updated = await withDbRetry(
+    () => Articles.update(input.id, { seoCritique: critique }),
+    { label: 'reviewSeo.save' },
+  );
   return { article: updated, critique };
 }

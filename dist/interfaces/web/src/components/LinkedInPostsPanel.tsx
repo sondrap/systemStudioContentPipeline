@@ -22,6 +22,7 @@ import {
 } from '@tabler/icons-react';
 import { Article, api } from '../api';
 import { useStore } from '../store';
+import { friendlyErrorMessage } from '../utils/errorMessages';
 
 type LinkedInPost = NonNullable<Article['linkedInPosts']>[number];
 type PostType = LinkedInPost['postType'];
@@ -56,7 +57,7 @@ export function LinkedInPostsPanel({ article }: LinkedInPostsPanelProps) {
       }
     } catch (err) {
       console.error('LinkedIn generation failed:', err);
-      alert('LinkedIn post generation failed. Try again.');
+      alert(friendlyErrorMessage(err));
     } finally {
       setGenerating(false);
     }
@@ -317,7 +318,7 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
       }
     } catch (err) {
       console.error('Regenerate failed:', err);
-      alert(`Regeneration failed: ${(err as Error).message || 'Try again'}`);
+      alert(friendlyErrorMessage(err));
     } finally {
       setRegenerating(false);
     }
@@ -344,7 +345,7 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
       setEditingImageText(false);
     } catch (err) {
       console.error('Image regenerate failed:', err);
-      alert(`Image regeneration failed: ${(err as Error).message || 'Try again'}`);
+      alert(friendlyErrorMessage(err));
     } finally {
       setRegeneratingImage(false);
     }

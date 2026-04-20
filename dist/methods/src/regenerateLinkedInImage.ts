@@ -1,6 +1,7 @@
 import { auth } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
 import { generateImageForPost } from './common/linkedInImages';
+import { withDbRetry } from './common/retry';
 
 // Regenerate ONLY the social card image for a LinkedIn post variant —
 // keeps the post text untouched. Used when Sondra wants to:
@@ -53,6 +54,9 @@ export async function regenerateLinkedInImage(input: {
       : v
   );
 
-  const updated = await Articles.update(input.articleId, { linkedInPosts: updatedVariants });
+  const updated = await withDbRetry(
+    () => Articles.update(input.articleId, { linkedInPosts: updatedVariants }),
+    { label: 'regenerateLinkedInImage.save' },
+  );
   return { article: updated, image };
 }

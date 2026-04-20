@@ -1,6 +1,7 @@
 import { auth } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
 import { reviewDraftCritique } from './common/draftCritique';
+import { withDbRetry } from './common/retry';
 
 // Manually trigger an adversarial draft review. Runs automatically at the
 // end of startArticle and after sendBack, but can be re-run anytime.
@@ -20,6 +21,11 @@ export async function reviewDraft(input: { id: string }) {
     excerpt: article.excerpt || '',
   });
 
-  const updated = await Articles.update(input.id, { draftCritique: critique });
+  // The critique took ~25s to generate. If the platform's Redis layer
+  // hiccups on the save, retry rather than throwing away expensive work.
+  const updated = await withDbRetry(
+    () => Articles.update(input.id, { draftCritique: critique }),
+    { label: 'reviewDraft.save' },
+  );
   return { article: updated, critique };
 }
