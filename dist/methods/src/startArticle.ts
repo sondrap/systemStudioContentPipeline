@@ -392,28 +392,22 @@ Output ONLY the rewritten meta description. No preamble, no quotes around it. Co
     wordCount: seoWordCount,
   });
 
-  console.log(`[${articleId}] SEO pass complete. Focus keyword: "${focusKeyword}". Generating images.`);
+  console.log(`[${articleId}] SEO pass complete. Focus keyword: "${focusKeyword}". Generating hero image.`);
 
   // --- IMAGE PHASE ---
-  // Generate one hero image for the article plus two in-body images placed at
-  // natural break points. Total of 3 images per article hits the industry
-  // minimum for a standard blog post and creates visual rhythm throughout.
+  // Hero image only. We previously generated 2 in-body break-point images for
+  // visual rhythm, but Sondra correctly observed that decorative still-life
+  // images placed mid-article don't add information value — they're just
+  // pretty noise that reviewers flag and readers skim past. Inline images
+  // need to EARN their place by carrying real information (data viz, pull
+  // quotes, screenshots). Those are dedicated future features on the roadmap.
+  // For now: hero only. Articles with great prose don't need more images.
 
-  // Step 1: Pick break points for in-body images. Let the AI analyze the article
-  // and identify 2 natural spots where a visual would add value. Returns the
-  // ## heading to insert each image after, plus the concept for that image.
-  const breakPoints = await pickBodyImageBreakPoints({
-    articleId,
-    title: seoTitle,
-    body: seoBody,
-    focusKeyword,
-  });
-
-  // Step 2: Pick a hero concept (whole-article metaphor). Avoid objects already
-  // reserved for body images so the three images feel distinct within this
-  // article, AND avoid combinations used in recent articles so the blog has
-  // visual variety across posts.
-  const reservedObjects = breakPoints.flatMap(bp => bp.concept.objects.map(o => o.name));
+  // No body-image break points needed — empty array. Kept the variable so
+  // downstream code (insertBodyImages, reservedObjects) continues to work
+  // with no changes; it just operates on an empty list.
+  const breakPoints: { afterHeading: string; concept: ImageConcept }[] = [];
+  const reservedObjects: string[] = [];
 
   // Query the last 6 articles that shipped with a hero image. Excludes this
   // article itself in case of retries.

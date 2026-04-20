@@ -16,6 +16,7 @@ import {
   IconListNumbers,
   IconChartBar,
   IconHeartHandshake,
+  IconArrowsMaximize,
 } from '@tabler/icons-react';
 import { Article, api } from '../api';
 import { useStore } from '../store';
@@ -239,7 +240,20 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
   const [copied, setCopied] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Expanded modal view — gives Sondra a roomy fullscreen-ish editor for
+  // long posts (1500+ chars) that are hard to read in the cramped card.
+  const [expanded, setExpanded] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Close the modal on Escape so it feels native
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExpanded(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [expanded]);
 
   // When the post data changes externally (e.g., regenerate), sync the draft
   useEffect(() => {
@@ -358,6 +372,7 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
   };
 
   return (
+    <>
     <div style={{
       borderRadius: 10,
       border: `1px solid ${post.postedAt ? '#57726740' : 'var(--border)'}`,
@@ -491,6 +506,15 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
         </button>
 
         <button
+          onClick={() => setExpanded(true)}
+          title="Open in a larger window — easier to read and edit long posts"
+          style={actionButtonStyle}
+        >
+          <IconArrowsMaximize size={11} />
+          Expand
+        </button>
+
+        <button
           onClick={handleRegenerate}
           disabled={regenerating}
           title="Regenerate this variant with a different angle"
@@ -524,6 +548,257 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
         >
           <IconTrash size={11} />
         </button>
+      </div>
+    </div>
+
+    {/* Fullscreen expand modal — same edit/copy/regen actions as the card,
+        just with much more room. Closes on backdrop click or Escape key. */}
+    {expanded && (
+      <ExpandedPostModal
+        post={post}
+        articleId={articleId}
+        draftContent={draftContent}
+        onChange={(value) => {
+          setDraftContent(value);
+          setEditing(true);
+          // Same debounced save as the inline editor
+          if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+          saveTimerRef.current = setTimeout(() => handleSaveEdit(value), 1500);
+        }}
+        onCopy={handleCopy}
+        copied={copied}
+        onRegenerate={handleRegenerate}
+        regenerating={regenerating}
+        onTogglePosted={handleTogglePosted}
+        onClose={() => {
+          // Flush any pending save before closing
+          if (saveTimerRef.current) {
+            clearTimeout(saveTimerRef.current);
+            handleSaveEdit(draftContent);
+          }
+          setExpanded(false);
+        }}
+      />
+    )}
+    </>
+  );
+}
+
+// Fullscreen modal view of a single LinkedIn post variant. Roomy editor for
+// long-form posts that are hard to read in the cramped sidebar card. Shares
+// all action handlers with the parent card so edits, copies, regens, and
+// posted-status toggles all flow through the same code paths.
+function ExpandedPostModal({
+  post,
+  articleId,
+  draftContent,
+  onChange,
+  onCopy,
+  copied,
+  onRegenerate,
+  regenerating,
+  onTogglePosted,
+  onClose,
+}: {
+  post: LinkedInPost;
+  articleId: string;
+  draftContent: string;
+  onChange: (value: string) => void;
+  onCopy: () => void;
+  copied: boolean;
+  onRegenerate: () => void;
+  regenerating: boolean;
+  onTogglePosted: () => void;
+  onClose: () => void;
+}) {
+  const typeConfig = POST_TYPE_CONFIG[post.postType];
+  const Icon = typeConfig.icon;
+  const charCount = draftContent.length;
+  const charColor = charCount > 3000 ? '#C25D42' : charCount > 2000 ? '#C9932D' : charCount < 400 ? '#C9932D' : 'var(--text-tertiary)';
+
+  // Quiet `articleId` unused warning — it's part of the prop contract for
+  // future enhancement (e.g., passing through to a regenerate-with-context
+  // call) but not needed for current rendering.
+  void articleId;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(20, 20, 20, 0.55)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        padding: '40px 24px',
+        overflow: 'auto',
+        backdropFilter: 'blur(2px)',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--surface)',
+          borderRadius: 12,
+          maxWidth: 720,
+          width: '100%',
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.2)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Header — type label, character count, close */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '14px 20px',
+          borderBottom: '1px solid var(--border)',
+          background: typeConfig.color + '08',
+        }}>
+          <Icon size={16} stroke={2} color={typeConfig.color} />
+          <span style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: typeConfig.color,
+            letterSpacing: '0.03em',
+            textTransform: 'uppercase',
+          }}>
+            {typeConfig.label} Post
+          </span>
+          {post.edited && (
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>edited</span>
+          )}
+          {post.postedAt && (
+            <span style={{
+              fontSize: 11, fontWeight: 600, color: 'var(--success)',
+              display: 'flex', alignItems: 'center', gap: 3,
+            }}>
+              <IconCheck size={11} stroke={3} /> Posted
+            </span>
+          )}
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: charColor, fontWeight: 500 }}>
+            {charCount.toLocaleString()} characters
+          </span>
+          <button
+            onClick={onClose}
+            title="Close (Esc)"
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--text-tertiary)',
+              cursor: 'pointer',
+              padding: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 4,
+            }}
+          >
+            <IconX size={18} stroke={1.5} />
+          </button>
+        </div>
+
+        {/* Body — full-size textarea, plenty of room */}
+        <div style={{ padding: 20 }}>
+          {/* Hook indicator: anything under the 210-char fold gets a subtle
+              tint so Sondra can see where LinkedIn cuts off the preview. */}
+          {draftContent.length > 210 && (
+            <div style={{
+              fontSize: 11,
+              color: 'var(--text-tertiary)',
+              marginBottom: 8,
+              fontStyle: 'italic',
+            }}>
+              First {Math.min(210, draftContent.length)} characters show in the LinkedIn feed before "see more". The rest expands when readers click.
+            </div>
+          )}
+
+          <textarea
+            value={draftContent}
+            onChange={(e) => onChange(e.target.value)}
+            autoFocus
+            style={{
+              width: '100%',
+              minHeight: 380,
+              padding: '14px 16px',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              background: 'white',
+              fontSize: 15,
+              lineHeight: 1.65,
+              color: 'var(--text-primary)',
+              resize: 'vertical',
+              outline: 'none',
+              fontFamily: "'Satoshi', sans-serif",
+            }}
+          />
+        </div>
+
+        {/* Action footer */}
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          padding: '14px 20px',
+          borderTop: '1px solid var(--border)',
+          background: 'var(--bg)',
+        }}>
+          <button
+            onClick={onCopy}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 16px',
+              borderRadius: 8,
+              border: copied ? '1px solid var(--accent)' : '1px solid var(--deep-current)',
+              background: copied ? '#57726715' : 'var(--deep-current)',
+              color: copied ? 'var(--accent)' : 'white',
+              fontSize: 13, fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 150ms',
+            }}
+          >
+            {copied ? <><IconClipboardCheck size={14} /> Copied to clipboard</> : <><IconCopy size={14} /> Copy to clipboard</>}
+          </button>
+
+          <button
+            onClick={onRegenerate}
+            disabled={regenerating}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 14px',
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: 'transparent',
+              color: 'var(--text-secondary)',
+              fontSize: 12, fontWeight: 500,
+              cursor: regenerating ? 'wait' : 'pointer',
+            }}
+          >
+            {regenerating ? <IconLoader2 size={13} className="spinner" /> : <IconRefresh size={13} />}
+            {regenerating ? 'Regenerating...' : 'Regenerate with different angle'}
+          </button>
+
+          <button
+            onClick={onTogglePosted}
+            style={{
+              marginLeft: 'auto',
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 14px',
+              borderRadius: 8,
+              border: post.postedAt ? '1px solid var(--accent)' : '1px solid var(--border)',
+              background: post.postedAt ? '#57726715' : 'transparent',
+              color: post.postedAt ? 'var(--accent)' : 'var(--text-secondary)',
+              fontSize: 12, fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            <IconCheck size={13} />
+            {post.postedAt ? 'Posted' : 'Mark posted'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -48,6 +48,14 @@ export function ArticlePage() {
   const [confirmUnpublish, setConfirmUnpublish] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const [republishing, setRepublishing] = useState(false);
+  // Image concept editor state. When true, the Image Concept panel switches
+  // from read-only display to editable form for objects + composition + alt
+  // text. Submitting the form regenerates the image with the user's overrides
+  // instead of using the AI concept picker.
+  const [editingConcept, setEditingConcept] = useState(false);
+  const [conceptObjects, setConceptObjects] = useState('');
+  const [conceptComposition, setConceptComposition] = useState('');
+  const [conceptAltText, setConceptAltText] = useState('');
   // Short-lived success toast that appears after a republish completes so
   // Sondra knows the re-POST went through (since 'Published' badge doesn't
   // change state between before/after republish).
@@ -130,12 +138,22 @@ export function ArticlePage() {
     }
   };
 
-  const handleRegenerateImage = async () => {
+  // Standard regenerate — AI picks the concept. Used by the "Regenerate
+  // Image" button and the close of the custom concept editor.
+  const handleRegenerateImage = async (customConcept?: {
+    objects?: string[];
+    composition?: string;
+    altText?: string;
+  }) => {
     if (!articleId || regenerating) return;
     setRegenerating(true);
     try {
-      const { article: updated } = await api.regenerateImage({ id: articleId });
-      updateArticleLocal(articleId, { imageUrl: updated.imageUrl });
+      const { article: updated } = await api.regenerateImage({ id: articleId, customConcept });
+      updateArticleLocal(articleId, {
+        imageUrl: updated.imageUrl,
+        coverImageAlt: updated.coverImageAlt,
+        heroImageObjects: updated.heroImageObjects,
+      });
     } catch (err: any) {
       alert(err.message || 'Image generation failed.');
     } finally {
@@ -253,7 +271,7 @@ export function ArticlePage() {
               gap: 8,
             }}>
               <IconPhoto size={32} stroke={1} color="var(--text-tertiary)" />
-              <button className="btn btn-ghost btn-sm" onClick={handleRegenerateImage} disabled={regenerating}>
+              <button className="btn btn-ghost btn-sm" onClick={() => handleRegenerateImage()} disabled={regenerating}>
                 {regenerating ? <><IconLoader2 size={14} className="spinner" /> Generating...</> : 'Generate Image'}
               </button>
             </div>
@@ -552,18 +570,182 @@ export function ArticlePage() {
           </div>
         )}
 
-        {/* Image concept / alt text — helps Sondra understand what the objects mean */}
-        {article.imageUrl && article.coverImageAlt && (
+        {/* Image concept — read-only by default, editable on demand. The
+            edit form lets Sondra override the AI's object selection and
+            composition with her own taste-level choices before regenerating. */}
+        {article.imageUrl && (
           <div>
-            <span className="overline">Image Concept</span>
-            <div style={{
-              marginTop: 8, fontSize: 12, lineHeight: 1.5,
-              color: 'var(--text-secondary)', fontStyle: 'italic',
-              padding: '10px 12px', background: 'var(--bg)',
-              borderRadius: 8, border: '1px solid var(--border)',
-            }}>
-              {article.coverImageAlt}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="overline">Image Concept</span>
+              {!editingConcept && (
+                <button
+                  onClick={() => {
+                    // Pre-populate the form with current values so the user
+                    // edits from where the article is, not a blank slate
+                    setConceptObjects((article.heroImageObjects || []).join('\n'));
+                    setConceptComposition('');
+                    setConceptAltText(article.coverImageAlt || '');
+                    setEditingConcept(true);
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-tertiary)',
+                    fontSize: 11,
+                    cursor: 'pointer',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                  }}
+                  title="Edit the image concept and regenerate with your specific direction"
+                >
+                  <IconPencil size={11} stroke={1.5} /> Edit
+                </button>
+              )}
             </div>
+
+            {!editingConcept ? (
+              <div style={{
+                marginTop: 8, fontSize: 12, lineHeight: 1.5,
+                color: 'var(--text-secondary)', fontStyle: 'italic',
+                padding: '10px 12px', background: 'var(--bg)',
+                borderRadius: 8, border: '1px solid var(--border)',
+              }}>
+                {article.coverImageAlt || 'No description set yet.'}
+                {article.heroImageObjects && article.heroImageObjects.length > 0 && (
+                  <div style={{
+                    marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)',
+                    fontStyle: 'normal', fontSize: 11, color: 'var(--text-tertiary)',
+                  }}>
+                    <strong>Objects:</strong> {article.heroImageObjects.join(' · ')}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{
+                marginTop: 8,
+                padding: 12,
+                background: 'var(--bg)',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                display: 'flex', flexDirection: 'column', gap: 10,
+              }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+                    Objects (one per line)
+                  </label>
+                  <textarea
+                    value={conceptObjects}
+                    onChange={(e) => setConceptObjects(e.target.value)}
+                    placeholder={'Glass vessel with pale liquid\nFolded handmade paper\nSingle brass key'}
+                    rows={4}
+                    style={{
+                      width: '100%', padding: '6px 10px',
+                      fontSize: 12, lineHeight: 1.5,
+                      borderRadius: 6, border: '1px solid var(--border)',
+                      background: 'white', color: 'var(--text-primary)',
+                      outline: 'none', resize: 'vertical',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                    From the brand bank: ceramic sphere · river stones · glass cube · glass vessel · folded paper · linen rope · botanical stems · brass shapes · wooden blocks · brass key
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+                    Composition (optional)
+                  </label>
+                  <textarea
+                    value={conceptComposition}
+                    onChange={(e) => setConceptComposition(e.target.value)}
+                    placeholder={'Objects clustered tightly in the center, single key positioned slightly forward casting a long shadow.'}
+                    rows={3}
+                    style={{
+                      width: '100%', padding: '6px 10px',
+                      fontSize: 12, lineHeight: 1.5,
+                      borderRadius: 6, border: '1px solid var(--border)',
+                      background: 'white', color: 'var(--text-primary)',
+                      outline: 'none', resize: 'vertical',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+                    Alt text (for accessibility + SEO)
+                  </label>
+                  <input
+                    value={conceptAltText}
+                    onChange={(e) => setConceptAltText(e.target.value)}
+                    placeholder="A glass vessel, folded paper, and a brass key on warm linen."
+                    style={{
+                      width: '100%', padding: '6px 10px',
+                      fontSize: 12, lineHeight: 1.5,
+                      borderRadius: 6, border: '1px solid var(--border)',
+                      background: 'white', color: 'var(--text-primary)',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={async () => {
+                      // Parse objects: one per line, trim whitespace, filter blanks
+                      const objects = conceptObjects
+                        .split('\n')
+                        .map(l => l.trim())
+                        .filter(l => l.length > 0);
+                      if (objects.length === 0) {
+                        alert('Add at least one object name.');
+                        return;
+                      }
+                      setEditingConcept(false);
+                      await handleRegenerateImage({
+                        objects,
+                        composition: conceptComposition || undefined,
+                        altText: conceptAltText || undefined,
+                      });
+                    }}
+                    disabled={regenerating}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: 6,
+                      border: '1px solid var(--deep-current)',
+                      background: 'var(--deep-current)',
+                      color: 'white',
+                      fontSize: 12, fontWeight: 600,
+                      cursor: regenerating ? 'wait' : 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    }}
+                  >
+                    {regenerating
+                      ? <><IconLoader2 size={12} className="spinner" /> Generating...</>
+                      : <>Generate with these objects</>}
+                  </button>
+                  <button
+                    onClick={() => setEditingConcept(false)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 6,
+                      border: '1px solid var(--border)',
+                      background: 'transparent',
+                      color: 'var(--text-secondary)',
+                      fontSize: 12, fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -572,7 +754,7 @@ export function ArticlePage() {
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {article.imageUrl && (
-            <button className="btn btn-ghost btn-sm" onClick={handleRegenerateImage} disabled={regenerating} style={{ width: '100%' }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => handleRegenerateImage()} disabled={regenerating} style={{ width: '100%' }}>
               {regenerating ? <><IconLoader2 size={14} className="spinner" /> Generating...</> : 'Regenerate Image'}
             </button>
           )}

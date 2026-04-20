@@ -89,30 +89,30 @@ Writing also runs as a background task. Transitions to `review` when complete.
 
 ### Image Generation
 
-Each article gets multiple images: **one hero image at the top** plus **two in-body images** placed at natural break points. Total of three images per article, which hits the industry minimum and creates visual rhythm through the piece. All images share the same [Editorial Still Life]{Painterly object compositions on a linen surface, with objects chosen to metaphorically relate to the article topic. All images share the same lighting, surface, and palette so they look cohesive.} style.
+Each article gets **one hero image at the top**. All images share the same [Editorial Still Life]{Painterly object compositions on a linen surface, with objects chosen to metaphorically relate to the article topic. All images share the same lighting, surface, and palette so they look cohesive.} style.
 
 ~~~
-**Why three images, not one.** Research on blog post best practices (see `src/references/image-best-practices.md`) shows posts with an image at every scroll depth are shared 2x as often as text-heavy posts and retain readers dramatically better. A single hero image is not enough for a 1,500+ word article.
+**Why hero only.** We previously generated 2 in-body break-point images for visual rhythm based on industry research suggesting 3+ images per post performs better. In practice the in-body still-life images were decorative, not informational — they didn't add signal to a non-technical founder reading on their phone. The Draft Reviewer flagged them, Sondra (the human) flagged them. Pretty noise scattered through prose is the opposite of editorial trust.
 
-**The three-image pipeline:**
+When we want in-body visuals in the future, the right path is dedicated functional images (data viz / pull quote cards / screenshots) where each image carries real information. Those are roadmap items, not the default.
 
-1. **Pick body break points.** The AI analyzes the article (titled, with H2 headings finalized) and picks exactly 2 H2 headings after which to place an in-body image. Avoids the first H2 (too close to hero) and the last H2 (conclusion doesn't need a visual break). Each pick includes an article-specific concept: objects chosen from the brand bank plus a statement of what each object means in THIS section's argument.
+**The hero image pipeline:**
 
-2. **Pick hero concept.** A separate concept for the whole-article metaphor, with `avoidObjects` set to the objects already reserved for body images so all three images use distinct object combinations.
+1. **Pick hero concept.** AI picks 3-4 objects from the brand bank for the whole-article metaphor. Avoids object combinations used in the last 6 articles (queries `heroImageObjects` from prior published articles) so the blog has visual variety across posts.
 
-3. **Render all three in parallel.** `Promise.all` with `renderStillLife()` for the hero and each body image. Each call independently handles errors so one failure doesn't kill the others.
+2. **Render with renderStillLife().** Single image generation call. Hero image saved as `imageUrl` with the chosen objects in `heroImageObjects` for future rotation tracking.
 
-4. **Insert body images into the markdown body.** Walk the body line by line. When a matching H2 heading is found, advance past the heading and the first paragraph of that section, then insert `![altText](imageUrl)` with blank lines on each side. This places the image partway into the section so the heading and opening thought stay together.
+**User-editable image concept.** The article editor's Image Concept panel can be flipped from read-only to edit mode. The user provides:
+- Objects (one per line, from the bank)
+- Composition (free-text description of arrangement)
+- Alt text (for accessibility + SEO)
 
-**Break point selection rules:**
-- Articles with fewer than 3 H2 headings skip body images entirely (the article is too short to need them).
-- The AI returns headings that must match one of the provided H2s. If the AI paraphrases, we fuzzy match (lowercase substring match in either direction).
-- The two body images must use different object combinations from each other.
+When the user submits, `regenerateImage` skips the AI concept-picker step entirely and goes straight to image rendering with their custom concept. This is for taste-level moments where the AI would never reach the right answer on its own (e.g., "I want this article to feel different — use just the brass key by itself, very minimal").
 
-**Style Anchor (constant, never changes across all three images):**
+**Style Anchor (constant, never changes):**
 "Soft-focus editorial still life composition in a painterly, slightly impressionistic rendering style, clearly not a photograph but evocative of one. Objects arranged on a pale linen surface (#F7F4F2). Soft directional window light from the upper left, casting long gentle shadows. Shallow depth of field with the background dissolving into a warm creamy blur. Color palette strictly restricted to: deep muted teal (#365367), sage green (#577267), blush pink (#ECD8DC), pale blue (#D4E4F1), warm linen white (#F7F4F2), and natural brass/gold. Premium editorial magazine aesthetic. Matte surfaces, no gloss. Generous negative space. Horizontal composition."
 
-**Objects** are chosen from a fixed 10-item bank with symbolic meanings (ceramic sphere, river stones, glass cube, glass vessel, folded paper, linen rope, dried botanical stems, brass geometric shapes, wooden blocks, brass key). The AI MUST pick only from this bank.
+**Objects** are chosen from a fixed 10-item bank with symbolic meanings (ceramic sphere, river stones, glass cube, glass vessel, folded paper, linen rope, dried botanical stems, brass geometric shapes, wooden blocks, brass key). When the AI is picking, it MUST pick only from this bank. When the user is overriding, they're trusted to pick whatever serves the moment (the bank is a guideline shown in the editor as a reminder).
 
 **Rules:**
 - No text in images
@@ -122,7 +122,7 @@ Each article gets multiple images: **one hero image at the top** plus **two in-b
 - Each object must have a clear, recognizable silhouette
 - Generate at 2048x1076 for 1200x630 hero crop and square thumbnail crop
 
-The hero image's alt text is stored on `coverImageAlt` and displayed in the article editor sidebar as an "Image Concept" section. Body images get their alt text inlined into the markdown. The `regenerateImage` method regenerates only the hero, using the same shared helpers (`pickImageConcept` and `renderStillLife` in `dist/methods/src/common/generateStillLife.ts`).
+The hero image's alt text is stored on `coverImageAlt` and displayed in the article editor sidebar as the "Image Concept" section. The `regenerateImage` method handles both AI mode (default) and custom mode (user-supplied concept).
 
 Generate as part of the drafting phase, after the SEO pass (because the focus keyword helps inform object selection).
 ~~~

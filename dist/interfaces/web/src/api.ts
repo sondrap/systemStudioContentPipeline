@@ -99,7 +99,14 @@ export const api = createClient<{
   publishArticle(input: { id: string }): Promise<{ article: Article }>;
   unpublishArticle(input: { id: string }): Promise<{ article: Article; dryRun?: boolean; wasAlreadyMissing?: boolean }>;
   sendBack(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;
-  regenerateImage(input: { id: string }): Promise<{ article: Article }>;
+  regenerateImage(input: {
+    id: string;
+    customConcept?: {
+      objects?: string[];
+      composition?: string;
+      altText?: string;
+    };
+  }): Promise<{ article: Article }>;
   reviewSeo(input: { id: string }): Promise<{ article: Article; critique: Article['seoCritique'] }>;
   reviewDraft(input: { id: string }): Promise<{ article: Article; critique: Article['draftCritique'] }>;
   generateLinkedInPosts(input: { id: string }): Promise<{ article: Article; posts: NonNullable<Article['linkedInPosts']> }>;
