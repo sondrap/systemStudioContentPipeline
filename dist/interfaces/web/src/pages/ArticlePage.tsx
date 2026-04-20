@@ -469,11 +469,13 @@ export function ArticlePage() {
           </div>
         </div>
 
-        {/* Draft Critique Panel — voice, audience fit, structure, flow */}
-        <DraftCritiquePanel article={article} />
+        {/* Draft Critique Panel — voice, audience fit, structure, flow.
+            Accepts flushSave so the critique always runs against the
+            latest body (not a stale debounced-save version). */}
+        <DraftCritiquePanel article={article} flushSave={handleManualSave} />
 
         {/* SEO Critique Panel — strategic, search-performance adversarial review */}
-        <SeoCritiquePanel article={article} />
+        <SeoCritiquePanel article={article} flushSave={handleManualSave} />
 
         {/* SEO Panel — deterministic checks + editable fields */}
         <SeoPanel

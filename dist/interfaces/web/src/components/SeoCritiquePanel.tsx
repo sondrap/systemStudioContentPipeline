@@ -38,24 +38,39 @@ const AREA_LABELS: Record<Area, string> = {
 
 interface SeoCritiquePanelProps {
   article: Article;
+  // Flush any pending body/title autosave before re-running so the
+  // critique always evaluates the latest content (not a stale DB copy).
+  flushSave?: () => void;
 }
 
-export function SeoCritiquePanel({ article }: SeoCritiquePanelProps) {
+export function SeoCritiquePanel({ article, flushSave }: SeoCritiquePanelProps) {
   const updateArticleLocal = useStore((s) => s.updateArticleLocal);
   const [expanded, setExpanded] = useState(true);
   const [rerunning, setRerunning] = useState(false);
+  const [rerunError, setRerunError] = useState<string | null>(null);
 
   const critique = article.seoCritique;
 
+  // Stale when the article has been edited after the critique was generated.
+  const STALE_TOLERANCE_MS = 5_000;
+  const isStale = critique
+    ? article.updated_at > (critique.generatedAt + STALE_TOLERANCE_MS)
+    : false;
+
   const handleRerun = async () => {
     setRerunning(true);
+    setRerunError(null);
     try {
+      if (flushSave) flushSave();
+      await new Promise(r => setTimeout(r, 500));
+
       const result = await api.reviewSeo({ id: article.id });
       if (result.critique) {
         updateArticleLocal(article.id, { seoCritique: result.critique });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('SEO critique failed:', err);
+      setRerunError(err?.message || 'Re-run failed. Try again.');
     } finally {
       setRerunning(false);
     }
@@ -158,6 +173,62 @@ export function SeoCritiquePanel({ article }: SeoCritiquePanelProps) {
             </div>
           ) : (
             <>
+              {/* Stale warning when the article has been edited since the
+                  critique was generated. Tells Sondra that the feedback may
+                  reference content no longer in the draft. */}
+              {isStale && (
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  background: '#D4A01715',
+                  border: '1px solid #D4A01740',
+                  marginBottom: 12,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                }}>
+                  <div style={{ fontSize: 12, color: '#8C6710', lineHeight: 1.5 }}>
+                    <strong>This review is out of date.</strong> The article has been edited since this review was generated ({formatRelativeTime(critique.generatedAt)}). Some feedback below may reference content that is no longer in the draft.
+                  </div>
+                  <button
+                    onClick={handleRerun}
+                    disabled={rerunning}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: 6,
+                      border: '1px solid #C9932D',
+                      background: '#C9932D',
+                      color: 'white',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: rerunning ? 'wait' : 'pointer',
+                      opacity: rerunning ? 0.7 : 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      alignSelf: 'flex-start',
+                    }}
+                  >
+                    {rerunning
+                      ? <><IconLoader2 size={12} className="spinner" /> Re-reviewing...</>
+                      : <><IconRefresh size={12} /> Re-review now</>}
+                  </button>
+                </div>
+              )}
+
+              {rerunError && (
+                <div style={{
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  background: '#C25D4215',
+                  border: '1px solid #C25D4230',
+                  marginBottom: 12,
+                  fontSize: 12,
+                  color: '#9A4531',
+                  lineHeight: 1.5,
+                }}>
+                  Re-run failed: {rerunError}
+                </div>
+              )}
+
               {/* Overall assessment */}
               <div style={{
                 padding: '10px 12px',

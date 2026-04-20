@@ -23,24 +23,47 @@ const AREA_LABELS: Record<Area, string> = {
 
 interface DraftCritiquePanelProps {
   article: Article;
+  // Called before re-run to flush any pending body/title autosave so the
+  // critique always evaluates the LATEST content. Without this, the critique
+  // can run against a stale DB body while the user's recent edits are still
+  // sitting in a debounced save timer.
+  flushSave?: () => void;
 }
 
-export function DraftCritiquePanel({ article }: DraftCritiquePanelProps) {
+export function DraftCritiquePanel({ article, flushSave }: DraftCritiquePanelProps) {
   const updateArticleLocal = useStore((s) => s.updateArticleLocal);
   const [expanded, setExpanded] = useState(true);
   const [rerunning, setRerunning] = useState(false);
+  const [rerunError, setRerunError] = useState<string | null>(null);
 
   const critique = article.draftCritique;
 
+  // Stale when the article has been edited after the critique was generated.
+  // Small fudge factor (5 seconds) avoids false positives from save timestamps
+  // that happen to be slightly after critique generation on the same tick.
+  const STALE_TOLERANCE_MS = 5_000;
+  const isStale = critique
+    ? article.updated_at > (critique.generatedAt + STALE_TOLERANCE_MS)
+    : false;
+
   const handleRerun = async () => {
     setRerunning(true);
+    setRerunError(null);
     try {
+      // Flush any pending autosave FIRST so the critique runs against the
+      // latest body, not a stale DB copy from before recent edits.
+      if (flushSave) flushSave();
+      // Small wait so the flush network call completes before the server
+      // reads article.body for the critique.
+      await new Promise(r => setTimeout(r, 500));
+
       const result = await api.reviewDraft({ id: article.id });
       if (result.critique) {
         updateArticleLocal(article.id, { draftCritique: result.critique });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Draft critique failed:', err);
+      setRerunError(err?.message || 'Re-run failed. Try again.');
     } finally {
       setRerunning(false);
     }
@@ -141,6 +164,65 @@ export function DraftCritiquePanel({ article }: DraftCritiquePanelProps) {
             </div>
           ) : (
             <>
+              {/* Stale warning — shows when the article has been edited
+                  after the critique was generated. This is a real failure
+                  mode: the critique may reference content that no longer
+                  exists in the article. */}
+              {isStale && (
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  background: '#D4A01715',
+                  border: '1px solid #D4A01740',
+                  marginBottom: 12,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                }}>
+                  <div style={{ fontSize: 12, color: '#8C6710', lineHeight: 1.5 }}>
+                    <strong>This review is out of date.</strong> The article has been edited since this review was generated ({formatRelativeTime(critique.generatedAt)}). Some feedback below may reference content that is no longer in the draft.
+                  </div>
+                  <button
+                    onClick={handleRerun}
+                    disabled={rerunning}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: 6,
+                      border: '1px solid #C9932D',
+                      background: '#C9932D',
+                      color: 'white',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: rerunning ? 'wait' : 'pointer',
+                      opacity: rerunning ? 0.7 : 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      alignSelf: 'flex-start',
+                    }}
+                  >
+                    {rerunning
+                      ? <><IconLoader2 size={12} className="spinner" /> Re-reviewing...</>
+                      : <><IconRefresh size={12} /> Re-review now</>}
+                  </button>
+                </div>
+              )}
+
+              {/* Error surfacing — if re-run failed, tell the user so they
+                  know they're still looking at old content. */}
+              {rerunError && (
+                <div style={{
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  background: '#C25D4215',
+                  border: '1px solid #C25D4230',
+                  marginBottom: 12,
+                  fontSize: 12,
+                  color: '#9A4531',
+                  lineHeight: 1.5,
+                }}>
+                  Re-run failed: {rerunError}
+                </div>
+              )}
+
               {/* Overall assessment */}
               <div style={{
                 padding: '10px 12px',
