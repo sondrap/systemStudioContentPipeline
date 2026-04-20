@@ -136,6 +136,51 @@ export function LinkedInPostsPanel({ article }: LinkedInPostsPanelProps) {
             </div>
           ) : (
             <>
+              {/* Hero image preview — shows the visual that will accompany
+                  these posts when shared. LinkedIn posts are text-only, but
+                  if Sondra includes a link to the article, the article's
+                  hero image is what shows up in the link preview. So she
+                  should be able to see what visual will be associated. */}
+              {article.imageUrl && (
+                <div style={{
+                  marginBottom: 12,
+                  padding: 8,
+                  borderRadius: 8,
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                }}>
+                  <div style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-tertiary)',
+                    marginBottom: 6,
+                  }}>
+                    Visual that posts with these variants
+                  </div>
+                  <img
+                    src={`${article.imageUrl}?w=600&dpr=2&fm=webp`}
+                    alt={article.coverImageAlt || ''}
+                    style={{
+                      width: '100%',
+                      aspectRatio: '1.91 / 1',
+                      objectFit: 'cover',
+                      borderRadius: 6,
+                      display: 'block',
+                    }}
+                  />
+                  <div style={{
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.4,
+                    marginTop: 6,
+                  }}>
+                    LinkedIn auto-attaches this image when you include the article link in your post. To use a different image (custom carousel, pull quote, screenshot), upload it directly when posting.
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {posts.map((post) => (
                   <PostVariantCard
