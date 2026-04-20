@@ -64,6 +64,17 @@ export async function reviewSeoCritique(input: ReviewInput): Promise<SeoCritique
     generatedAt: Date.now(),
   };
 
+  // Wrap the body in clear delimiters so the model can't get confused
+  // about where the article begins and ends. Otherwise the model
+  // sometimes hallucinates that the article is truncated mid-sentence.
+  // Truncation limit raised to 12000 to match draftCritique (was 8000,
+  // which silently cut off articles ~1600 words long without telling
+  // the reviewer).
+  const bodyTruncated = input.body.substring(0, 12000);
+  const truncationNote = input.body.length > 12000
+    ? ` (truncated from ${input.body.length} chars)`
+    : '';
+
   const { content } = await mindstudio.generateText({
     message: `# Article to Review
 
@@ -79,11 +90,18 @@ ${input.metaDescription}
 ## Excerpt
 ${input.excerpt}
 
-## Body
-${input.body.substring(0, 8000)}
+## Body (${bodyTruncated.length} characters${truncationNote})
+
+The full article body is contained between the BEGIN and END markers below. Read all of it before assessing. The article ends at the END marker — do NOT claim the article is incomplete or cut off mid-sentence unless you have read all the way to the END marker and verified the last paragraph is genuinely incomplete.
+
+<<<BEGIN_ARTICLE_BODY>>>
+${bodyTruncated}
+<<<END_ARTICLE_BODY>>>
 ${competitorContext}
 
-Review this article critically. Identify strategic SEO weaknesses that a deterministic checklist would miss. Prioritize issues by severity. For each issue, explain WHY it matters and suggest a specific, actionable fix.`,
+Review this article critically. Identify strategic SEO weaknesses that a deterministic checklist would miss. Prioritize issues by severity. For each issue, explain WHY it matters and suggest a specific, actionable fix.
+
+Before flagging any issue about the article ending early or being incomplete, double-check that the END marker is truly preceded by an unfinished sentence. If the article ends with a complete paragraph followed by Sondra's signature sign-off ("Don't overthink it," / "SP"), the article is complete and you should NOT flag it as truncated.`,
     modelOverride: {
       model: 'claude-4-6-sonnet',
       temperature: 0.4,
