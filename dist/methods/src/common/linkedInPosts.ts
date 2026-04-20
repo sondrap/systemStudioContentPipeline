@@ -20,6 +20,14 @@ export interface GeneratedLinkedInPost {
   characterCount: number;
   generatedAt: number;
   edited: boolean;
+  // Optional social card image fields, populated by generateAllLinkedInPosts
+  // after the text is written. Quote cards use imageText, stat cards use
+  // imageNumber + imageLabel.
+  imageUrl?: string;
+  imageType?: 'quote' | 'stat';
+  imageText?: string;
+  imageNumber?: string;
+  imageLabel?: string;
 }
 
 interface GeneratorInput {
@@ -183,10 +191,13 @@ const POST_STRUCTURES: Record<LinkedInPostType, string> = {
 
 // Generate all 5 post variants for an article. Runs in parallel for speed.
 // Each generation is independent so one failure doesn't kill the others.
+// After posts are generated, also generate matching social card images
+// (quote card or stat card) for each post — also in parallel.
 export async function generateAllLinkedInPosts(input: GeneratorInput): Promise<GeneratedLinkedInPost[]> {
   const types: LinkedInPostType[] = ['story', 'hot-take', 'framework', 'data', 'confession'];
 
-  const results = await Promise.all(
+  // Step 1: generate the post text in parallel
+  const postResults = await Promise.all(
     types.map(type =>
       generateSinglePost(type, input).catch(err => {
         console.error(`[linkedInPosts] ${type} generation failed:`, err);
@@ -195,8 +206,35 @@ export async function generateAllLinkedInPosts(input: GeneratorInput): Promise<G
     )
   );
 
-  // Filter out failures and return the successful posts
-  return results.filter((p): p is GeneratedLinkedInPost => p !== null);
+  const successfulPosts = postResults.filter((p): p is GeneratedLinkedInPost => p !== null);
+
+  // Step 2: generate a social card image for each successful post, in
+  // parallel. Failures don't block the post itself — the post is still
+  // useful even without an image.
+  const { generateImageForPost } = await import('./linkedInImages');
+  const postsWithImages = await Promise.all(
+    successfulPosts.map(async (post) => {
+      try {
+        const image = await generateImageForPost({
+          postType: post.postType,
+          postContent: post.content,
+        });
+        return {
+          ...post,
+          imageUrl: image.imageUrl,
+          imageType: image.imageType,
+          imageText: image.text,
+          imageNumber: image.number,
+          imageLabel: image.label,
+        };
+      } catch (err) {
+        console.error(`[linkedInPosts] image generation failed for ${post.postType}:`, err);
+        return post;
+      }
+    })
+  );
+
+  return postsWithImages;
 }
 
 // Generate a single post variant of a specific type. Used for both the

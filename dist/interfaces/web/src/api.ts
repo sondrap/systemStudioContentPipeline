@@ -66,6 +66,11 @@ export interface Article {
     edited: boolean;
     postedAt?: number;
     notes?: string;
+    imageUrl?: string;
+    imageType?: 'quote' | 'stat';
+    imageText?: string;
+    imageNumber?: string;
+    imageLabel?: string;
   }>;
   created_at: number;
   updated_at: number;
@@ -112,6 +117,13 @@ export const api = createClient<{
   generateLinkedInPosts(input: { id: string }): Promise<{ article: Article; posts: NonNullable<Article['linkedInPosts']> }>;
   regenerateLinkedInPost(input: { articleId: string; variantId: string }): Promise<{ article: Article; post: NonNullable<Article['linkedInPosts']>[number] }>;
   updateLinkedInPost(input: { articleId: string; variantId: string; content?: string; postedAt?: number | null; notes?: string; delete?: boolean }): Promise<{ article: Article }>;
+  regenerateLinkedInImage(input: {
+    articleId: string;
+    variantId: string;
+    customText?: string;
+    customNumber?: string;
+    customLabel?: string;
+  }): Promise<{ article: Article; image: { imageUrl: string; imageType: 'quote' | 'stat'; text: string; number?: string; label?: string } }>;
   resumeArticle(input: { id: string }): Promise<{ article: Article; recovered: { heroImage: boolean; seoCritique: boolean; draftCritique: boolean; linkedInPosts: number } }>;
   captureQuickTopic(input: { rawInput: string }): Promise<{ topic: Topic }>;
   importPublishedArticles(): Promise<{ totalOnSite: number; imported: number; skipped: number; failed: number; details: any }>;

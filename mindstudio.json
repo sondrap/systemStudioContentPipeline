@@ -46,6 +46,7 @@
     { "id": "generate-linkedin-posts", "name": "Generate LinkedIn Posts", "path": "dist/methods/src/generateLinkedInPosts.ts", "export": "generateLinkedInPosts" },
     { "id": "regenerate-linkedin-post", "name": "Regenerate LinkedIn Post", "path": "dist/methods/src/regenerateLinkedInPost.ts", "export": "regenerateLinkedInPost" },
     { "id": "update-linkedin-post", "name": "Update LinkedIn Post", "path": "dist/methods/src/updateLinkedInPost.ts", "export": "updateLinkedInPost" },
+    { "id": "regenerate-linkedin-image", "name": "Regenerate LinkedIn Image", "path": "dist/methods/src/regenerateLinkedInImage.ts", "export": "regenerateLinkedInImage" },
     { "id": "resume-article", "name": "Resume Article", "path": "dist/methods/src/resumeArticle.ts", "export": "resumeArticle" }
   ],
 

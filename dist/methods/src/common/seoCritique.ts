@@ -70,8 +70,8 @@ export async function reviewSeoCritique(input: ReviewInput): Promise<SeoCritique
   // Truncation limit raised to 12000 to match draftCritique (was 8000,
   // which silently cut off articles ~1600 words long without telling
   // the reviewer).
-  const bodyTruncated = input.body.substring(0, 12000);
-  const truncationNote = input.body.length > 12000
+  const bodyTruncated = input.body.substring(0, 20000);
+  const truncationNote = input.body.length > 20000
     ? ` (truncated from ${input.body.length} chars)`
     : '';
 

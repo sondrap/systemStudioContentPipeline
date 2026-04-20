@@ -58,8 +58,8 @@ export async function reviewDraftCritique(input: ReviewInput): Promise<DraftCrit
   // hallucinates that the article is truncated mid-sentence (it isn't —
   // it gets confused by the prompt instructions appearing after the body).
   // Also include the body length so the model can sanity-check its read.
-  const bodyTruncated = input.body.substring(0, 12000);
-  const truncationNote = input.body.length > 12000
+  const bodyTruncated = input.body.substring(0, 20000);
+  const truncationNote = input.body.length > 20000
     ? ` (truncated from ${input.body.length} chars)`
     : '';
 

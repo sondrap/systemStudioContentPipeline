@@ -1,0 +1,35 @@
+# LinkedIn Image Brief — 4-Variant Set
+Format: Square, 1080 × 1080 px
+Usage: LinkedIn organic feed posts
+Brand: Use established brand colors, fonts, and style guide on file
+## Variant 1 — Quote Card (Text Overlay)
+Pull a compelling quote or key sentence directly from the article — something punchy, thought-provoking, or shareable on its own. Set the quote as the dominant element over a simple, on-brand background. The background can be a solid color, subtle texture, or minimal graphic element from the brand system. Include the author name or handle as a small secondary element. No busy imagery — let the words carry the visual.
+Design goal: Readable at a glance, stops the scroll with the strength of the words.
+## Variant 2 — Illustration or Photo
+Create or select an image that visually represents the core theme or subject of the article — not the blog's abstract/decorative image, but something that communicates the topic clearly in a feed context. This can be an original illustration, a styled photo, or a graphic composition.
+Add a short title or topic label (3–6 words) as a text element so the subject is immediately clear even without reading the caption.
+Design goal: Visually engaging and immediately communicates what the post is about.
+## Variant 3 — Stat or Data Point
+Identify one specific statistic, number, or concrete fact from the article. Make that number the hero of the image — large, bold, and prominent. Support it with a brief label (one line) that gives it context. Keep the layout clean and minimal. Use brand typography and color to give it authority.
+Design goal: Credibility and shareability — numbers catch the eye and establish expertise.
+## Variant 4 — Carousel (Multi-Slide PDF)
+Format: 5–8 slides, each 1080 × 1080 px, delivered as a single PDF
+Purpose: Walk the audience through the key ideas of the article one slide at a time.
+## Slide structure:
+- Slide 1 — Cover: A bold, attention-grabbing headline that frames the topic. Treat this like a post thumbnail — it must earn the swipe. Include the author name or handle.
+- Slides 2–6 (or up to 7) — Content slides: One idea, point, or insight per slide. Each slide should have a short header and 1–3 lines of supporting text maximum. Use a consistent layout template across all content slides. Visuals, icons, or minimal graphic elements can support the content but should not compete with the text.
+- Final slide — Call to action: A clear, simple prompt — for example, directing readers to the full article, inviting a comment, or asking a question. Include the author name or handle and any relevant link or handle.
+## Design notes:
+- The cover slide must be strong enough to stop the scroll on its own — it is the only slide visible before someone engages.
+- Maintain a consistent slide template so the set reads as a cohesive piece, not a collection of individual graphics.
+- Keep text minimal on every slide — carousels are swiped quickly and dense text will lose the reader.
+- Use a subtle slide number or progress indicator if it fits the brand style.
+Design goal: Maximum dwell time and shareability — guide the reader through a complete, satisfying idea from cover to CTA.
+## Notes for All Variants
+- Maintain visual cohesion across the full set so they read as a series if viewed together on a profile, while still being distinct enough to feel like separate posts in a feed.
+- Avoid cluttering any variant with too much text — LinkedIn images are viewed small and fast.
+- Leave no important content too close to the edges, as LinkedIn crops previews slightly on some devices.
+- Deliver single-image variants (1–3) as 1080 × 1080 px PNG or JPG at 72 dpi, RGB color.
+- Deliver the carousel (Variant 4) as a multi-page PDF with each page at 1080 × 1080 px.
+Each time you work from a new article, provide the designer with the specific quote, core theme, key stat, and the 4–6 main points you want covered in the carousel. Everything else stays the same.
+^{}[]

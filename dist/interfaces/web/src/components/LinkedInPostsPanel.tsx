@@ -17,6 +17,8 @@ import {
   IconChartBar,
   IconHeartHandshake,
   IconArrowsMaximize,
+  IconPhoto,
+  IconDownload,
 } from '@tabler/icons-react';
 import { Article, api } from '../api';
 import { useStore } from '../store';
@@ -137,51 +139,12 @@ export function LinkedInPostsPanel({ article }: LinkedInPostsPanelProps) {
             </div>
           ) : (
             <>
-              {/* Hero image preview — shows the visual that will accompany
-                  these posts when shared. LinkedIn posts are text-only, but
-                  if Sondra includes a link to the article, the article's
-                  hero image is what shows up in the link preview. So she
-                  should be able to see what visual will be associated. */}
-              {article.imageUrl && (
-                <div style={{
-                  marginBottom: 12,
-                  padding: 8,
-                  borderRadius: 8,
-                  background: 'var(--bg)',
-                  border: '1px solid var(--border)',
-                }}>
-                  <div style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                    color: 'var(--text-tertiary)',
-                    marginBottom: 6,
-                  }}>
-                    Visual that posts with these variants
-                  </div>
-                  <img
-                    src={`${article.imageUrl}?w=600&dpr=2&fm=webp`}
-                    alt={article.coverImageAlt || ''}
-                    style={{
-                      width: '100%',
-                      aspectRatio: '1.91 / 1',
-                      objectFit: 'cover',
-                      borderRadius: 6,
-                      display: 'block',
-                    }}
-                  />
-                  <div style={{
-                    fontSize: 11,
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.4,
-                    marginTop: 6,
-                  }}>
-                    LinkedIn auto-attaches this image when you include the article link in your post. To use a different image (custom carousel, pull quote, screenshot), upload it directly when posting.
-                  </div>
-                </div>
-              )}
-
+              {/* Per-variant images now live inside each PostVariantCard
+                  below. Each post gets its own custom social card (quote
+                  card or stat card) generated programmatically with brand
+                  fonts and colors. The article hero image is no longer
+                  shown here since it serves a different purpose (blog
+                  post + OG share preview, not LinkedIn social cards). */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {posts.map((post) => (
                   <PostVariantCard
@@ -244,6 +207,23 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
   // long posts (1500+ chars) that are hard to read in the cramped card.
   const [expanded, setExpanded] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Image regeneration state — separate from post regeneration so the user
+  // can regenerate just the social card without rewriting the post.
+  const [regeneratingImage, setRegeneratingImage] = useState(false);
+  const [editingImageText, setEditingImageText] = useState(false);
+  // Local form state for image text edits before submitting
+  const [imageTextDraft, setImageTextDraft] = useState(post.imageText || '');
+  const [imageNumberDraft, setImageNumberDraft] = useState(post.imageNumber || '');
+  const [imageLabelDraft, setImageLabelDraft] = useState(post.imageLabel || '');
+
+  // Sync the local form state when the post's image fields change externally
+  // (e.g., regeneration completes)
+  useEffect(() => {
+    setImageTextDraft(post.imageText || '');
+    setImageNumberDraft(post.imageNumber || '');
+    setImageLabelDraft(post.imageLabel || '');
+  }, [post.imageText, post.imageNumber, post.imageLabel]);
 
   // Close the modal on Escape so it feels native
   useEffect(() => {
@@ -340,6 +320,33 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
       alert(`Regeneration failed: ${(err as Error).message || 'Try again'}`);
     } finally {
       setRegenerating(false);
+    }
+  };
+
+  // Regenerate ONLY the social card image, optionally with edited text.
+  // The post content stays untouched. Used when the user wants a different
+  // quote on the image without rewriting the post itself.
+  const handleRegenerateImage = async (overrides?: {
+    customText?: string;
+    customNumber?: string;
+    customLabel?: string;
+  }) => {
+    setRegeneratingImage(true);
+    try {
+      const result = await api.regenerateLinkedInImage({
+        articleId,
+        variantId: post.id,
+        ...overrides,
+      });
+      if (result.article.linkedInPosts) {
+        updateArticleLocal(articleId, { linkedInPosts: result.article.linkedInPosts });
+      }
+      setEditingImageText(false);
+    } catch (err) {
+      console.error('Image regenerate failed:', err);
+      alert(`Image regeneration failed: ${(err as Error).message || 'Try again'}`);
+    } finally {
+      setRegeneratingImage(false);
     }
   };
 
@@ -468,6 +475,294 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
               {post.content.slice(210)}
             </>
           )}
+        </div>
+      )}
+
+      {/* Social card image preview — quote card or stat card.
+          Always present (after first generation) and editable. */}
+      {post.imageUrl && (
+        <div style={{
+          padding: '10px 12px',
+          borderTop: '1px solid var(--border)',
+          background: 'rgba(247, 244, 242, 0.5)',  // soft Linen tint
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}>
+          {/* Image label + edit toggle */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+            color: 'var(--text-tertiary)',
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <IconPhoto size={11} stroke={1.8} />
+              {post.imageType === 'stat' ? 'Stat Card' : 'Quote Card'}
+              <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, opacity: 0.7 }}>· 1080×1080</span>
+            </span>
+            {!editingImageText && (
+              <button
+                onClick={() => setEditingImageText(true)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text-tertiary)',
+                  fontSize: 11,
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                }}
+              >
+                <IconEdit size={10} stroke={1.5} />
+                Edit text
+              </button>
+            )}
+          </div>
+
+          {/* Image thumbnail (clickable to open full size in new tab) */}
+          <a
+            href={post.imageUrl}
+            target="_blank"
+            rel="noopener"
+            style={{ display: 'block', borderRadius: 6, overflow: 'hidden', position: 'relative' }}
+            title="Click to open full-size image in new tab"
+          >
+            <img
+              src={`${post.imageUrl}?w=600&dpr=2&fm=webp`}
+              alt={post.imageText || ''}
+              style={{
+                width: '100%',
+                aspectRatio: '1 / 1',
+                objectFit: 'cover',
+                display: 'block',
+                background: '#F7F4F2',
+              }}
+            />
+            {regeneratingImage && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'rgba(247, 244, 242, 0.85)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                color: 'var(--deep-current, #365367)',
+                fontSize: 12,
+                fontWeight: 600,
+              }}>
+                <IconLoader2 size={14} className="spinner" />
+                Regenerating image...
+              </div>
+            )}
+          </a>
+
+          {/* Edit text form (collapsed by default) */}
+          {editingImageText && (
+            <div style={{
+              padding: 10,
+              background: 'white',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}>
+              {post.imageType === 'stat' ? (
+                <>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 3 }}>
+                      Headline number
+                    </label>
+                    <input
+                      value={imageNumberDraft}
+                      onChange={(e) => setImageNumberDraft(e.target.value)}
+                      placeholder="73%"
+                      style={{
+                        width: '100%', padding: '5px 8px',
+                        fontSize: 12, borderRadius: 4,
+                        border: '1px solid var(--border)',
+                        outline: 'none', fontFamily: 'inherit',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 3 }}>
+                      Label (one short line)
+                    </label>
+                    <textarea
+                      value={imageLabelDraft}
+                      onChange={(e) => setImageLabelDraft(e.target.value)}
+                      placeholder="of B2B buyers research online before any purchase decision"
+                      rows={2}
+                      style={{
+                        width: '100%', padding: '5px 8px',
+                        fontSize: 12, lineHeight: 1.4, borderRadius: 4,
+                        border: '1px solid var(--border)',
+                        outline: 'none', fontFamily: 'inherit',
+                        resize: 'vertical',
+                      }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 3 }}>
+                    Quote text
+                  </label>
+                  <textarea
+                    value={imageTextDraft}
+                    onChange={(e) => setImageTextDraft(e.target.value)}
+                    placeholder="The single line that should appear as the quote on the card"
+                    rows={3}
+                    style={{
+                      width: '100%', padding: '5px 8px',
+                      fontSize: 12, lineHeight: 1.4, borderRadius: 4,
+                      border: '1px solid var(--border)',
+                      outline: 'none', fontFamily: 'inherit',
+                      resize: 'vertical',
+                    }}
+                  />
+                  <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                    Keep it under ~220 characters. Shorter quotes look more impactful.
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={() => {
+                    if (post.imageType === 'stat') {
+                      handleRegenerateImage({
+                        customNumber: imageNumberDraft.trim(),
+                        customLabel: imageLabelDraft.trim(),
+                      });
+                    } else {
+                      handleRegenerateImage({ customText: imageTextDraft.trim() });
+                    }
+                  }}
+                  disabled={regeneratingImage}
+                  style={{
+                    flex: 1,
+                    padding: '6px 10px',
+                    borderRadius: 5,
+                    border: '1px solid var(--deep-current, #365367)',
+                    background: 'var(--deep-current, #365367)',
+                    color: 'white',
+                    fontSize: 11, fontWeight: 600,
+                    cursor: regeneratingImage ? 'wait' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                  }}
+                >
+                  {regeneratingImage
+                    ? <><IconLoader2 size={11} className="spinner" /> Generating...</>
+                    : 'Regenerate image'}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingImageText(false);
+                    // Reset to original values
+                    setImageTextDraft(post.imageText || '');
+                    setImageNumberDraft(post.imageNumber || '');
+                    setImageLabelDraft(post.imageLabel || '');
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 5,
+                    border: '1px solid var(--border)',
+                    background: 'transparent',
+                    color: 'var(--text-secondary)',
+                    fontSize: 11, fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Quick action: regenerate with same source content (different
+              extraction outcome) — useful if the auto-extracted quote
+              just isn't great */}
+          {!editingImageText && (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                onClick={() => handleRegenerateImage()}
+                disabled={regeneratingImage}
+                style={{
+                  flex: 1,
+                  padding: '5px 8px',
+                  borderRadius: 4,
+                  border: '1px solid var(--border)',
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontSize: 11, fontWeight: 500,
+                  cursor: regeneratingImage ? 'wait' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                }}
+              >
+                {regeneratingImage ? <IconLoader2 size={11} className="spinner" /> : <IconRefresh size={11} />}
+                Regen image
+              </button>
+              <a
+                href={post.imageUrl}
+                target="_blank"
+                rel="noopener"
+                download
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                  padding: '5px 8px',
+                  borderRadius: 4,
+                  border: '1px solid var(--border)',
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontSize: 11, fontWeight: 500,
+                  textDecoration: 'none',
+                }}
+              >
+                <IconDownload size={11} />
+                Download
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Show "Generate image" button when post exists but image hasn't
+          been generated yet (e.g., older posts created before the image
+          system existed). */}
+      {!post.imageUrl && (
+        <div style={{
+          padding: '10px 12px',
+          borderTop: '1px solid var(--border)',
+          background: 'rgba(247, 244, 242, 0.5)',
+        }}>
+          <button
+            onClick={() => handleRegenerateImage()}
+            disabled={regeneratingImage}
+            style={{
+              width: '100%',
+              padding: '8px 10px',
+              borderRadius: 6,
+              border: '1px dashed var(--border)',
+              background: 'transparent',
+              color: 'var(--text-secondary)',
+              fontSize: 12, fontWeight: 500,
+              cursor: regeneratingImage ? 'wait' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            {regeneratingImage
+              ? <><IconLoader2 size={12} className="spinner" /> Generating image...</>
+              : <><IconPhoto size={12} stroke={1.8} /> Generate {post.postType === 'data' ? 'stat' : 'quote'} card image</>}
+          </button>
         </div>
       )}
 

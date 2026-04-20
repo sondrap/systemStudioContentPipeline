@@ -72,6 +72,17 @@ interface Article {
     edited: boolean;               // true once Sondra modifies content
     postedAt?: number;             // set when she marks it posted
     notes?: string;                // her notes about performance, etc.
+    // LinkedIn social card image generated for this variant. Each post type
+    // gets its own image (quote card for most types, stat card for data).
+    // Image is rendered programmatically (HTML -> PNG) so text is always
+    // pixel-perfect on brand. The text fields (imageText / imageNumber /
+    // imageLabel) reflect what's CURRENTLY shown on the image, so the user
+    // can edit them and regenerate.
+    imageUrl?: string;
+    imageType?: 'quote' | 'stat';
+    imageText?: string;            // for quote cards: the quote rendered
+    imageNumber?: string;          // for stat cards: the headline number
+    imageLabel?: string;           // for stat cards: the supporting label
   }>;
 }
 
