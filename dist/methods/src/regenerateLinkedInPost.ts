@@ -34,6 +34,10 @@ export async function regenerateLinkedInPost(input: { articleId: string; variant
     const image = await generateImageForPost({
       postType: newPost.postType,
       postContent: newPost.content,
+      articleBody: article.body || '',
+      // Prefer the verbatim quote the generator pulled from the article
+      // body. Falls back to article body extraction if absent.
+      customText: newPost.imageQuote,
     });
     imageFields = {
       imageUrl: image.imageUrl,

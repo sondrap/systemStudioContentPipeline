@@ -20,9 +20,13 @@ export interface GeneratedLinkedInPost {
   characterCount: number;
   generatedAt: number;
   edited: boolean;
-  // Optional social card image fields, populated by generateAllLinkedInPosts
-  // after the text is written. Quote cards use imageText, stat cards use
-  // imageNumber + imageLabel.
+  // Verbatim line pulled directly from the article body that captures the
+  // punch of this post's angle. Used as the text on the quote card image so
+  // the visual always shows something Sondra actually wrote, not an
+  // AI-fabricated line that sounds like her. Optional because the generator
+  // might skip it for stat posts (which use imageNumber + imageLabel).
+  imageQuote?: string;
+  // Social card image fields, populated after the image is rendered.
   imageUrl?: string;
   imageType?: 'quote' | 'stat';
   imageText?: string;
@@ -218,6 +222,12 @@ export async function generateAllLinkedInPosts(input: GeneratorInput): Promise<G
         const image = await generateImageForPost({
           postType: post.postType,
           postContent: post.content,
+          articleBody: input.articleBody,
+          // Prefer the verbatim quote the generator pulled from the article.
+          // If it's missing (quote didn't validate or generator didn't return
+          // one), the image helper will extract a sensible line from the
+          // article body rather than from the AI-rephrased post content.
+          customText: post.imageQuote,
         });
         return {
           ...post,
@@ -250,13 +260,15 @@ export async function generateSinglePost(
 
   const structure = POST_STRUCTURES[postType];
 
-  // Return shape that encodes both the post and the hook pattern that was chosen
+  // Return shape that encodes the post, the hook pattern, the rationale, and
+  // a verbatim quote from the article body for use on the social card image.
   const example = {
     content: postType === 'story'
       ? `"We're going with your competitor."\n\nThat email arrived at 6:47 AM on a Tuesday. I'd spent three weeks on that proposal.\n\nI wanted to delete it and move on. Instead, I replied asking one question:\n\n"Would you share what made the difference?"\n\nTheir response changed everything I understood about B2B sales:\n\n"Your product was better. But their founder commented on my LinkedIn posts for six months. When I had budget, I already trusted them."\n\nThat's when I realized:\n\nLinkedIn isn't a lead generation platform.\n\nIt's a trust-building platform.\n\nThe sale happened long before the sales call.\n\nWhat's your "aha moment" about how buyers actually make decisions?`
       : 'Full LinkedIn post text with proper line breaks (use \\n\\n between paragraphs).',
     hookPattern: 'opening-scene',
     rationale: '1-2 sentences explaining why this angle was chosen from the article.',
+    imageQuote: 'A single standalone sentence pulled VERBATIM from the article body. Must appear word-for-word somewhere in the article. Under 220 characters.',
   };
 
   const { content } = await mindstudio.generateText({
@@ -290,7 +302,18 @@ ${relevantHookPatterns}
 Return:
 - **content**: the full LinkedIn post, ready to copy/paste. Use \\n\\n between paragraphs (never single \\n). No markdown. No external links. Hashtags at the end (3-5 relevant ones) only if they genuinely fit.
 - **hookPattern**: which pattern you used (one of the pattern names above)
-- **rationale**: 1-2 sentences explaining which part of the article you extracted and why this angle works for the audience`,
+- **rationale**: 1-2 sentences explaining which part of the article you extracted and why this angle works for the audience
+- **imageQuote**: a single standalone sentence pulled VERBATIM from the article body that will be rendered on the social card image. Critical rules for imageQuote:
+  - It MUST appear word-for-word in the article body above. Do not paraphrase. Do not reword. Do not combine multiple sentences.
+  - It must be a complete standalone line that makes sense without context.
+  - Ideally 60 to 220 characters. Shorter is more impactful.
+  - It should capture the PUNCH of this post's angle — the line a reader would underline, screenshot, or quote back to a friend.
+  - For story posts: a scene-setting or turning-point line.
+  - For hot-take posts: the contrarian claim itself.
+  - For framework posts: the core principle or most memorable item from the list.
+  - For data posts: the sentence where the key statistic lands.
+  - For confession posts: the admission line or the lesson line.
+  - If you genuinely cannot find a standalone verbatim line that fits, return the shortest punchy direct quote from the article body. NEVER invent or rephrase. The quote must exist in the article exactly as written.`,
     modelOverride: {
       model: 'claude-4-6-sonnet',
       temperature: 0.75,
@@ -336,7 +359,12 @@ If the article genuinely lacks raw material for this post type, return content: 
     structuredOutputExample: JSON.stringify(example),
   });
 
-  const parsed = JSON.parse(content) as { content: string; hookPattern: string; rationale: string };
+  const parsed = JSON.parse(content) as {
+    content: string;
+    hookPattern: string;
+    rationale: string;
+    imageQuote?: string;
+  };
 
   if (parsed.content.startsWith('CANNOT_GENERATE:')) {
     throw new Error(`${postType}: ${parsed.content.replace('CANNOT_GENERATE:', '').trim()}`);
@@ -346,6 +374,24 @@ If the article genuinely lacks raw material for this post type, return content: 
   // what we want for LinkedIn. Trim whitespace.
   const cleanContent = parsed.content.trim();
 
+  // Validate the imageQuote actually appears in the article body. If the
+  // model hallucinated a "verbatim" quote that isn't really in the article,
+  // we'd rather drop it than render a fake Sondra quote on an image.
+  // Compare on normalized whitespace since the model may have slightly
+  // different spacing or line breaks than the source.
+  let imageQuote: string | undefined;
+  if (parsed.imageQuote) {
+    const rawQuote = parsed.imageQuote.trim().replace(/^["\u201C\u201D'']+|["\u201C\u201D'']+$/g, '').trim();
+    const normalizeWhitespace = (s: string) => s.replace(/\s+/g, ' ').toLowerCase();
+    const normalizedBody = normalizeWhitespace(input.articleBody);
+    const normalizedQuote = normalizeWhitespace(rawQuote);
+    if (rawQuote.length > 0 && normalizedBody.includes(normalizedQuote)) {
+      imageQuote = rawQuote;
+    } else {
+      console.warn(`[linkedInPosts] ${postType} imageQuote not found verbatim in article body, dropping:`, rawQuote.slice(0, 100));
+    }
+  }
+
   return {
     id: generateVariantId(),
     postType,
@@ -354,6 +400,7 @@ If the article genuinely lacks raw material for this post type, return content: 
     characterCount: cleanContent.length,
     generatedAt: Date.now(),
     edited: false,
+    imageQuote,
   };
 }
 

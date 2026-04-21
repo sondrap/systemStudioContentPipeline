@@ -365,24 +365,101 @@ export function defaultImageTypeForPost(postType: string): LinkedInImageType {
   return postType === 'data' ? 'stat' : 'quote';
 }
 
-// Extract the punchiest line from a LinkedIn post for use as a quote.
-// Heuristic: the first 1-2 sentences of the post (the hook is designed to
-// be the most quotable line — that's the whole point of the LinkedIn
-// hook formula). Caps at 220 chars so it fits the card.
+// Extract a punchy standalone line directly from the ARTICLE BODY for use
+// on a quote card. This is the right source for quotes because the article
+// body is authored content — lines Sondra wrote or edited — whereas the
+// LinkedIn post content is an AI rephrasing that can drift into new
+// "quotable" lines that sound like her but aren't actually in her article.
+//
+// Heuristic scoring:
+//   - Must be a complete sentence (ends with . ! or ?)
+//   - Prefer 40 to 220 chars (punchy but not tiny or too long)
+//   - Prefer sentences that feel standalone (no starting conjunctions)
+//   - Skip markdown artifacts (headers, links, list items)
+//   - Skip the sign-off and very short fragments
+export function extractQuoteFromArticleBody(body: string): string {
+  if (!body || body.trim().length === 0) return '';
+
+  // Break body into candidate lines. Filter to real sentences in prose,
+  // skipping markdown structures.
+  const lines = body
+    .split(/\n+/)
+    .map(l => l.trim())
+    .filter(l => {
+      if (l.length < 40 || l.length > 300) return false;
+      if (l.startsWith('#')) return false;           // headings
+      if (l.startsWith('-') || l.startsWith('*')) return false;  // list items
+      if (l.startsWith('>')) return false;           // blockquotes (attributed quotes, not her voice)
+      if (l.startsWith('![')) return false;          // images
+      if (/^[Dd]on.t overthink it/.test(l)) return false;  // sign-off
+      if (/^SP$/.test(l)) return false;
+      if (!/[.!?]$/.test(l)) return false;           // must end with sentence terminator
+      return true;
+    });
+
+  if (lines.length === 0) {
+    // Fallback: try to pull a single sentence from anywhere in the body
+    const sentences = body.match(/[^.!?\n]+[.!?]/g) || [];
+    const fallback = sentences.find(s => {
+      const trimmed = s.trim();
+      return trimmed.length >= 40 && trimmed.length <= 220;
+    });
+    return fallback?.trim() || '';
+  }
+
+  // Score each candidate. Higher score = better standalone quote.
+  const scored = lines.map(line => {
+    let score = 0;
+    const len = line.length;
+    // Sweet spot: 60-180 chars
+    if (len >= 60 && len <= 180) score += 20;
+    else if (len >= 40 && len <= 60) score += 10;
+    else if (len >= 180 && len <= 220) score += 10;
+    // Single-sentence line is better than multi-sentence
+    const sentenceCount = (line.match(/[.!?]/g) || []).length;
+    if (sentenceCount === 1) score += 10;
+    // Lines that start with capital letters and don't start with conjunctions
+    // read better as standalone quotes
+    if (/^[A-Z]/.test(line) && !/^(And|But|Or|So|Then|Because|Which|That)\b/i.test(line)) {
+      score += 5;
+    }
+    // Penalize lines that are mostly hyperlinks / have heavy markdown
+    const linkCount = (line.match(/\[[^\]]+\]\([^)]+\)/g) || []).length;
+    if (linkCount > 1) score -= 10;
+    // Penalize lines with ellipses (likely incomplete thoughts)
+    if (line.includes('...') || line.includes('\u2026')) score -= 5;
+    // Bonus for first-person voice (matches Sondra's signature)
+    if (/\b(I|my|me|we|our|us)\b/.test(line)) score += 3;
+    return { line, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  const best = scored[0].line;
+
+  // Strip any inline markdown (links) and normalize
+  const clean = best
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // strip markdown links
+    .replace(/\*\*([^*]+)\*\*/g, '$1')         // strip bold
+    .replace(/\*([^*]+)\*/g, '$1')             // strip italic
+    .replace(/`([^`]+)`/g, '$1')               // strip code
+    .trim();
+
+  if (clean.length > 220) {
+    return clean.slice(0, 217).replace(/\s+\S*$/, '') + '...';
+  }
+  return clean;
+}
+
+// Kept for backward compat and as a last-resort fallback when no article
+// body is available. The article body extractor above is the preferred
+// source because post content is AI-rephrased and may not match what the
+// article actually says.
 export function extractQuoteFromPost(content: string): string {
-  // Strip surrounding whitespace and the often-included opening quote chars
   const lines = content.trim().split(/\n+/);
-  // Take the first non-empty line as the hook
   const hook = lines.find(l => l.trim().length > 0) || content.trim();
-
-  // If the hook is short (< 120 chars), it's probably a single punchy line —
-  // use it as-is. If longer, just take the first sentence.
   if (hook.length < 120) return hook;
-
   const firstSentenceMatch = hook.match(/^[^.!?\n]+[.!?]/);
   const firstSentence = firstSentenceMatch ? firstSentenceMatch[0].trim() : hook;
-
-  // Final cap — 220 chars max so it fits the card layout
   if (firstSentence.length > 220) {
     return firstSentence.slice(0, 217).replace(/\s+\S*$/, '') + '...';
   }
@@ -450,9 +527,23 @@ export function extractStatFromPost(content: string): { number: string; label: s
 // Generate the appropriate image for a LinkedIn post. Used by both the
 // initial generation flow (in startArticle / generateLinkedInPosts) and
 // the per-variant regenerate flow.
+//
+// Quote source priority (highest wins):
+//   1. `customText` — explicit user edit, trust as-is
+//   2. Article body extraction — punchy verbatim line from Sondra's article
+//   3. LinkedIn post content — last-resort fallback when no article body is
+//      available (e.g., legacy flow that didn't pass it through)
+//
+// The key shift from the old behavior: we no longer default to extracting
+// from `postContent`. The LinkedIn post is an AI rephrasing of the article
+// and can invent "quotable" lines that sound like Sondra but aren't actually
+// in her article. The article body is the source of truth for her words.
 export async function generateImageForPost(opts: {
   postType: string;
   postContent: string;
+  // The article body is the preferred source for quote extraction. Only
+  // optional for backward compatibility; every current caller passes it.
+  articleBody?: string;
   authorHandle?: string;
   // When provided, override the auto-extracted text with the user's edit
   customText?: string;
@@ -463,9 +554,19 @@ export async function generateImageForPost(opts: {
   const handle = opts.authorHandle || AUTHOR_HANDLE;
 
   if (imageType === 'stat') {
-    const { number, label } = opts.customNumber || opts.customLabel
-      ? { number: opts.customNumber || '?', label: opts.customLabel || '' }
-      : extractStatFromPost(opts.postContent);
+    // For stat cards, prefer extracting the number+label from the article
+    // body since that's where the statistic was originally cited. The post
+    // content is fine as a fallback.
+    let number: string;
+    let label: string;
+    if (opts.customNumber || opts.customLabel) {
+      number = opts.customNumber || '?';
+      label = opts.customLabel || '';
+    } else if (opts.articleBody) {
+      ({ number, label } = extractStatFromPost(opts.articleBody));
+    } else {
+      ({ number, label } = extractStatFromPost(opts.postContent));
+    }
     return renderStatCard({
       text: `${number} — ${label}`,
       number,
@@ -474,8 +575,21 @@ export async function generateImageForPost(opts: {
     });
   }
 
-  // Quote card
-  const quoteText = opts.customText || extractQuoteFromPost(opts.postContent);
+  // Quote card — source priority is customText → article body → post content
+  let quoteText: string;
+  if (opts.customText && opts.customText.trim().length > 0) {
+    quoteText = opts.customText;
+  } else if (opts.articleBody) {
+    quoteText = extractQuoteFromArticleBody(opts.articleBody);
+    // If the article extractor genuinely can't find a sentence (very short
+    // article or weird formatting), fall back to post content.
+    if (!quoteText) {
+      quoteText = extractQuoteFromPost(opts.postContent);
+    }
+  } else {
+    quoteText = extractQuoteFromPost(opts.postContent);
+  }
+
   return renderQuoteCard({
     text: quoteText,
     authorHandle: handle,

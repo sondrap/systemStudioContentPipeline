@@ -34,6 +34,10 @@ export async function regenerateLinkedInImage(input: {
   const image = await generateImageForPost({
     postType: existing.postType,
     postContent: existing.content,
+    // Always pass the article body so the extractor can pull a verbatim
+    // quote from Sondra's actual writing rather than falling back to the
+    // AI-rephrased post content.
+    articleBody: article.body || '',
     customText: input.customText,
     customNumber: input.customNumber,
     customLabel: input.customLabel,
