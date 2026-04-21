@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useStore } from '../store';
 import { api, Article } from '../api';
-import { IconArrowLeft, IconLoader2, IconCheck, IconExternalLink, IconPhoto, IconTrash, IconPencil, IconHighlight, IconUsers, IconEye, IconCode, IconCloudOff, IconCloudUpload } from '@tabler/icons-react';
+import { IconArrowLeft, IconLoader2, IconCheck, IconExternalLink, IconPhoto, IconTrash, IconPencil, IconHighlight, IconUsers, IconEye, IconCode, IconCloudOff, IconCloudUpload, IconBrandLinkedin } from '@tabler/icons-react';
 import { Streamdown } from 'streamdown';
 import TextareaAutosize from 'react-textarea-autosize';
 import { SeoPanel } from '../components/SeoPanel';
@@ -62,6 +62,11 @@ export function ArticlePage() {
   const [republishedAt, setRepublishedAt] = useState<number | null>(null);
   const [highlightKeywords, setHighlightKeywords] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  // Sidebar tab — splits the dense metadata column into two focused views
+  // so Sondra doesn't have to scroll through 4000px of stacked panels.
+  // 'edit' = article writing/review work (status, critiques, SEO, image, actions).
+  // 'linkedin' = LinkedIn post variants, uses the full sidebar height.
+  const [sidebarTab, setSidebarTab] = useState<'edit' | 'linkedin'>('edit');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Initialize from article
@@ -447,17 +452,91 @@ export function ArticlePage() {
 
       {/* Metadata panel */}
       <div style={{
-        width: 280,
-        minWidth: 280,
+        width: 320,
+        minWidth: 320,
         height: '100%',
-        overflow: 'auto',
         background: 'var(--surface)',
         borderLeft: '1px solid var(--border)',
-        padding: 20,
         display: 'flex',
         flexDirection: 'column',
-        gap: 20,
       }}>
+        {/* Tab header — sticky at the top so tab switching is always one
+            click away regardless of scroll position in either tab. */}
+        <div style={{
+          display: 'flex',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--surface)',
+          flexShrink: 0,
+        }}>
+          <button
+            onClick={() => setSidebarTab('edit')}
+            style={{
+              flex: 1,
+              padding: '14px 12px',
+              border: 'none',
+              background: 'transparent',
+              color: sidebarTab === 'edit' ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: 13,
+              fontWeight: 600,
+              letterSpacing: '0.02em',
+              cursor: 'pointer',
+              borderBottom: sidebarTab === 'edit' ? '2px solid var(--deep-current, #365367)' : '2px solid transparent',
+              transition: 'all 150ms',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            <IconPencil size={13} stroke={1.8} />
+            Edit
+          </button>
+          <button
+            onClick={() => setSidebarTab('linkedin')}
+            style={{
+              flex: 1,
+              padding: '14px 12px',
+              border: 'none',
+              background: 'transparent',
+              color: sidebarTab === 'linkedin' ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              fontSize: 13,
+              fontWeight: 600,
+              letterSpacing: '0.02em',
+              cursor: 'pointer',
+              borderBottom: sidebarTab === 'linkedin' ? '2px solid #0A66C2' : '2px solid transparent',
+              transition: 'all 150ms',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            <IconBrandLinkedin size={13} stroke={1.8} />
+            LinkedIn
+            {(article.linkedInPosts?.length || 0) > 0 && (
+              <span style={{
+                fontSize: 11,
+                fontWeight: 500,
+                color: 'var(--text-tertiary)',
+                marginLeft: 2,
+              }}>
+                {article.linkedInPosts!.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Tab content area — scrolls independently of the tab header */}
+        <div style={{
+          flex: 1,
+          overflow: 'auto',
+          padding: 20,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 20,
+        }}>
+        {/* EDIT TAB — article-level work: status, critiques, SEO, image, actions */}
+        {sidebarTab === 'edit' && <>
         {/* Status */}
         <div>
           <span className="overline">Status</span>
@@ -504,8 +583,7 @@ export function ArticlePage() {
           onToggleHighlight={setHighlightKeywords}
         />
 
-        {/* LinkedIn Posts Panel — distribution layer, 5 post variants per article */}
-        <LinkedInPostsPanel article={article} />
+        {/* LinkedIn Posts panel moved to the LinkedIn sidebar tab. */}
 
         {/* Research brief */}
         {article.researchBrief && (
@@ -753,11 +831,15 @@ export function ArticlePage() {
 
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {article.imageUrl && (
-            <button className="btn btn-ghost btn-sm" onClick={() => handleRegenerateImage()} disabled={regenerating} style={{ width: '100%' }}>
-              {regenerating ? <><IconLoader2 size={14} className="spinner" /> Generating...</> : 'Regenerate Image'}
-            </button>
-          )}
+          {/* Always show the image button — label switches between "Generate"
+              and "Regenerate" depending on whether an image exists yet. This
+              catches the case where drafting failed to produce an image and
+              the user has no way to trigger one otherwise. */}
+          <button className="btn btn-ghost btn-sm" onClick={() => handleRegenerateImage()} disabled={regenerating} style={{ width: '100%' }}>
+            {regenerating
+              ? <><IconLoader2 size={14} className="spinner" /> Generating...</>
+              : article.imageUrl ? 'Regenerate Image' : 'Generate Image'}
+          </button>
 
           {article.status === 'review' && !published && (
             <>
@@ -900,6 +982,19 @@ export function ArticlePage() {
                 : 'Delete from pipeline'}
           </button>
         </div>
+        </>}
+        {/* END EDIT TAB */}
+
+        {/* LINKEDIN TAB — LinkedIn post variants get the full sidebar
+            height, so the user sees multiple cards without scrolling
+            through the article metadata. */}
+        {sidebarTab === 'linkedin' && <>
+          <LinkedInPostsPanel article={article} />
+        </>}
+        {/* END LINKEDIN TAB */}
+
+        </div>
+        {/* END TAB CONTENT AREA */}
       </div>
     </div>
   );

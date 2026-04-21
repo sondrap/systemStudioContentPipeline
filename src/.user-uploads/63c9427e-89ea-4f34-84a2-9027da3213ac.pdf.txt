@@ -1,0 +1,177 @@
+7
+2
+4
+6
+8
+9
+10
+# Why AI Tools Feel Like More Work (And
+April 21, 2020 1,494 words 6 min read
+# A: Precise
+# AI tools not saving you time?
+If your AI tools are making your Fridays worse than they were six months ago, I need you to hear this first: it is not a you problem.
+You subscribed to the tools. You watched the tutorials. You set up the prompts. And somehow, your to do list keeps growing.
+The AI productivity gap is real. It is documented, and it has nothing to do with how smart you are or how hard you're trying. The frustration you feel when your AI tools are not saving time is not a personal failure. It is a design problem. And there is now enough research to prove it.
+## What the Data Actually Says About AI Adoption
+[Goldman Sachs published their March 2026 AI Adoption Tracker]
+# STATUS
+## REVIEW
+## C: WRITING FOR
+New technical founders under $50M revenue. (Draminerthed by AI type, skeptical of vaporware, want relief not technology)
+## Draft Review
+### 1.1.1
+This review is out of date. The article has been without since this review was generated (the ago). Some feedback below may reference content that is no longer in the draft.
+## C: ADOPTING
+### 1.2.1
+This article is genuinely strong. The research is easier to without turning into a whitepaper, the Sunday voice hosts almost all the way through, and the core argument (tool sprawl creates, work, not relief) is exactly what this audience needs to hear at them on their phone. The opening hook earns the read. The signature close is correct and present. Three issues worth living: the opening has a structural redundancy that undercuts its own punch, one section drifts into employees at or compares framing that looks the founder, and the practical decision rule at the end burns the most actionable line behind a paragraph of setup.
+### 1.3.1
+The first two paragraphs repeat the same best twice. Paragraph 1 ends with 'your Friday is worse than it was six months ago.' Paragraph 2 opens with 'You subscribed to the tools. You watched the tutorials. You set up the prompts. And somehow, your Friday is worse than it was six months ago.' The callback tends flat because the reader just read that sentence. The second paragraph is doing real work (validating one effort the founder put no but the repeated payoff line tells the momentum right at the hook.
+Try: Cut the repeated closing line from paragraph 2. End paragraph 2 at 'And somehow, it is still not working' or similar. The list of effort (subscribed, watched, set up prompts) already earns the frustration without redating the Friday line. Keeps the validation, removes the redundancy.
+### 1.4.1
+The UC Berkeley section frames the problem entirely around employees at a company: '200 employees at a tech company,' 'employees' suddenly fall responsible for producing more work,' 'nobody explodes the old work.' The research is relevant but the framing is about workers inside a company, not founders who ARE the company. The final line of that section ("The expansion lands entirely on you") tries to rescue it, but by then the reader has been in employees land for four paragraphs.
+Try: Add one sentence before the Dean Perry quote that explicitly translates the finding into founder terms. Something like: 'For a founder, this plays out differently than it does for an employee. There is no manage to push back on the new scope. The expansion just lands.' Then the quote and the final line hit harder because the reader never left their own situation.
+### 1.5.1
+The practical decision rule section opens with the four-subscriptive data point, which is strong, but then the key diagnostic question ("Does this tool live inside work I am already doing, or does it require me to open a new tab and re-explain my business from scratch?") is sandwiched between setup paragraphs and almost gets too. The Reddit quote earlier in the article ("Nobody cares about AI, they care about not missing leads, saving 10 hours a week, or
+stopping data entry headache! (is actually the sharpest line in the piece and it appears two sections before the close.
+Try: Consider putting the diagnostic question out as a standalone line with a line break above and below it, the way a putt quoth would sit. It is the most actionable sentence in the article and it deserves the visual weight. No structural rewrite needed, just give it room to breathe.
+Your time says
+G. Barman
+## 1. SEO Critique
+Furthout, I should fix
+This review is out of date. The article has been edited since this review was generated (this app). Some feedback below may reference content that is no longer in the draft.
+## 2. Searching for the Issue
+## 3. SEO
+This is a strong article. The research is well-coursed, the founder-specific framing is genuinely differentiated from every competing result, and the voice is consistent throughout. The signature close is present, Two real issues worth fixing before publish: the headline leads with a statement rather than a pain, which will cost clinics against competing headlines, and the focus keyword placement in the opening is slightly delayed. One additional structural issue worth considering: Nothing here is invented to seem thorough.
+## 4. CRITICAL &gt; STRATEGIC
+The current headline "Why At Tools Feel Like More Went Uted What the Research Actually Says" leads with a state-of-the-world observation and a credibility claim. Every competing article uses nearly identical framing: "Why At Is Making Women More Exhausted," Why At Isn't Saving Time, etc. A founder scanning search results at 15pm saw five headlines that all start with "Why At..." and this one blends in. The parenthetical 'And What the Research Actually Says' is doing heavy lifting to differentiate but it's a weak hook because it promises a genre (research roundup) rather than a payoff (relief, a decision, a fix).
+Try: Lead with the reader's specific frustration and promise the structural diagnosis. Try: "Your At Tools Are Not Saving Time. Here Is the Structural Reason Why," or "At Tools Not Saving Time? The Research Finally Explains Why. And What Is Cut." Both versions from lead the focus keyword, match the search intent exactly, and promise a specific payoff (a reason, a cut list) rather than a genre. The second version also signals action, which differentiates from every competing result that stops at diagnosis.
+## 5. DETAILS FOR &gt;&gt; STRATEGIC
+The focus keyword 'At tools not saving time' does not appear in the first two sentences. The opening is warm and validating, which is right for this audience, but the reader who landed from a search for 'At tools not saving time' needs confirmation in sentence 1 or 2 that they are in the right place. Right now the first two sentences are 'If your At tools are making your Fridays worse than they were six months ago, I need you to hear this first. It is not a you problem.' The keyword concept is implied but not stated. A reader scanning quickly may not feel the confirmation click.
+Try: Tighten sentence 1 to include the keyword phrase naturally. For example: 'If your At tools are not saving time and your Fridays are somehow worse than they were six months ago, I need you to hear this first. It is not a you problem.' This preserves the warmth and the validation, keeps the voice intact, and gives the search visitor an immediate confirmation signal without feeling stuffed.
+12 WILD TO KNOW — 01/01/27 24:00
+The investor pressure angle is called out in the competitive landscape as a real founder pan-point with no competing coverage, but it does not appear anywhere in the article. The article earns its differentiation on the founder-versus-employee framing and the subscription cost angle, both of which are present and strong. The investor pressure angle is a separate search intent (“what do I tell my investor’s about AI strategy?”) that this article could capture with a single paragraph, and it would be the only article in this competitive set to address it.
+Try: Add a short paragraph, four to six sentences, somewhere between the two’ sprawl section and the practical decision rule. Something like: ‘And if you have a board meeting or investor call coming up where someone is going to ask about your AI strategy, here is what the data actually gives you to say: the companies getting results are not using more tools, they are using fewer tools deployed into specific workflows. That is a strategy. Subscribing to six platforms is not.’ This does not require restructuring anything and it captures a secondary search intent the top five competitors completely miss.
+13 WILD TO KNOW — 01/01/27 24:00
+The investor pressure angle is called out in the competitive landscape as a real founder pan-point with no competing coverage, but it does not appear anywhere in the article. The article earns its differentiation on the founder-versus-employee framing and the subscription cost angle, both of which are present and strong. The investor pressure angle is a separate search intent (“what do I tell my investor’s about AI strategy?”) that this article could capture with a single paragraph, and it would be the only article in this competitive set to address it.
+Try: Add a short paragraph, four to six sentences, somewhere between the two’ sprawl section and the practical decision rule. Something like: ‘And if you have a board meeting or investor call coming up where someone is going to ask about your AI strategy, here is what the data actually gives you to say: the companies getting results are not using more tools, they are using fewer tools deployed into specific workflows. That is a strategy. Subscribing to six platforms is not.’ This does not require restructuring anything and it captures a secondary search intent the top five competitors completely miss.
+14 WILD TO KNOW — 01/01/27 24:00
+ORIGINAL
+|  1 | S&G Score
+52% marks passing  |
+| --- | --- |
+|  2 | Show keyword highlights  |
+|  3 | Focus keyword  |
+|  4 | Tools not saving time  |
+|  5 | What is the reason  |
+|  6 | Businesses. Here’s the structural reason why, and the one for that actually works.  |
+|  7 | URL (Go)  |
+|  8 | SIGNATURE: the reason your AI tools-  |
+OPTIMIZATION CHECKLIST:
+1. Focus keyword set<br/>“At tools not saving time”
+2. Keyword in title<br/>“This doesn’t contain ‘fit tools not saving time’? Try to include it naturally.”
+3. Keyword in introduction<br/>“At tools not saving time” doesn’t appear in the first 100 words. Introduce it earlier.”
+4. Keyword density<br/>“At tools not saving time” doesn’t appear in the body.”
+5. Keyword in headings<br/>“As headings contain the focus keyword. Consider adding it to a section title.”
+6. Keyword in excerpt<br/>“A word doesn’t contain the focus keyword. This affects search engines.”
+7. Meta description length<br/>“100 characters. Good length.”
+8. Article length<br/>“Little words. Good length for 50%.”
+9. URL (Aq) set<br/>“Our reason your AI tools feel like some work to not use.”
+10. Outbound links<br/>“A outbound link. Good credibility. Equal.”
+11. Section headings<br/>“A headings. Good structure.”
+15 COMMITTED ANALYSIS
+|  12 | LinkedIn Posts
+5 SERIES MAKE  |
+| --- | --- |
+|  13 | STORY
+12% marks  |
+My Friday was worse than it was six months ago.
+I had subscribed to the tools. Matched the tutorials. Set up the prompts. And somehow, my to-do list was longer than before I started.
+I thought I was doing it. I was doing it wrong.
+Then I read the Goldman Sachs AI Adoption Tracker from March 2006. Only 16.7% of U.S. businesses are actually setting results from
+|  At. Flat month over month. The other BYIs are getting nothing. Not a little less than promised. Nothing. | F1  |
+| --- | --- |
+|  And the companies pulling ahead? They are not using different tools. They are using the same tools differently. | F2  |
+|  The ones saving 40 to 60 minutes a day had AI living. INSIDE the work. Not in a separate lab they had to remember to open, re- explain their business to, copy output from, and paste somewhere else. | F3  |
+|  That last part stopped me cold. Because that was exactly what I was doing. I did not have an AI workflow. I had a new task. | F4  |
+|  There is a Harvard and BCG study that put a name to what I was feeling: AI brain- fry. Workers using three or more AI tools reported WORSE outcomes than those using one or two. The tools were not saving mental energy. They were consuming it. | F5  |
+|  The one scenario where AI actually reduces burnout? When it replaces a repetitive task you were already doing Not when it adds new capabilities to manage. When something disappears from your state permanently. | F6  |
+|  That reframe changed everything for me. | F7  |
+|  Not "am I using AI?" but "is there something I do every week that is repetitive, predictable, and sour- crushing, and can I make it so I never do it again?" | F8  |
+|  If you have been feeling like the tools are working against you, what's one task you'd love to never do again? | F9  |
+|  #AWratsqg #SmallBusiness #Founders #Productivity | F10  |
+|  Deverate quote card image | F11  |
+|  D image of Kim ID Expand | F12  |
+|  D NOT TAKE | Both sides  |
+|  More AI tools does not mean more productivity. | F13  |
+|  Most founders I talk to believe the opposite. Subscribe to more tools, unlock more capability, get more done. That is the pitch, and we bought it. | F14  |
+|  Here is what I see more - he research actually found: | F15  |
+|  Workers using THREE OR MORE AI tools reported WORSE outcomes than those using one or two. (BCG, March 2026, nearly 1,500 employees surveyed.) | F16  |
+|  Ach/Flak tracked 10,550 workers for 180 days after AI adoption. Deep-focus work NA BYs. Email time went up 104%. Their conclusion was not nuanced: "AI does not reduce workloads." | F17  |
+|  And the Goldman Sachs data shows only 18.7% of businesses are getting real results. The ones that are? They are not using more tools. They found ONE workflow where AI lives inside the work they were already doing. | F18  |
+|  So the real question is not "am I using enough AI?" | F19  |
+|  It is: is there one repetitive task on my plate that AI could remove permanently, so I never do it again? | F20  |
+|  That is the whole framework. One thing that disappears. Not six subscriptions running in six labs while you re- explain your business to each one from scratch. | F21  |
+|  Agree or disagree? | F22  |
+#AirProductivity #FounderLife #SmallBusiness #AOStrategy
+Q: Generate quote card image.
+A: Image of Edit
+O: Expand
+Q: PleaseDebate
+Q: You want
+81% of businesses are getting nothing from AI.
+Not a little less than promised. Nothing.
+And if you're a founder under 59 people, the odds are worse. Goldman Sachs tracked this in March 2006. The gap between our news large and small companies isn't closing.
+Here's what separates the 10% who ARE saving 40-60 minutes a day from everyone else. It's not which tools they use. It's how they use them.
+1. They deploy AI-NFO existing work, not beside it. If you open a new talk and re-explain your business every time, you don't have a workflow. You have a new task.
+2. They stop at two or three tools. BCG found that workers using three or more AI tools reported WORSE outcomes than those using one or two. You are past the productivity peak.
+3. They target replacement, not addition. AI reduces burnout in exactly one scenario: when it replaces a repetitive task permanently. Not what it gives you more to monitor.
+4. They account for the verification tax. Workday's 2020 survey found workers lost 40% of their efficiency gains to checking, rewriting, and fact-checking AI output. If you're not building in review time, your math is off.
+5. They ask one question before adopting any tool: Is there something I do every week that's repetitive, predictable, and soul-crushing, and can AI make it so I never do it again?
+That last one is the whole framework.
+Not "am I using AI." Not "what's my AI strategy." Just what disappears from my plate permanently?
+The most counterintuitive part: the founders pulling ahead aren't smaller or more technical. They found ONE workflow where AI lives inside the work. That's it.
+What would you add to this list?
+#AOStrategy #FounderLife #SmallBusiness #Productivity
+Q: Generate quote card image.
+A: Image of Edit
+O: Expand
+Q: DATA
+Q: You want
+85% of employees said AI saved them time.
+Then they lost 40% of those gains to checking, rewriting, and fact-checking the output.
+Do that math on a one-hour savings: 24 minutes gone to verification. And if you have more time running a small team with no operations staff to absorb that checking, the tax hits you directly.
+That's from the Workday 2020 survey. But it gets more specific.
+ActivTrak tracked YLEBA workers for 100 days before and after AI adoption. Time on small went up 154%.
+![img-0.jpeg](img-0.jpeg)
+# RESEARCH BRIEF
+Two major research streams public in early 2026 confirm what non-technical founders already feel in their gut. At is adding work for most people, not removing it. Goldman Sachs data shows the  $18\%$  of businesses that have genuinely embedded AI into daily workflows are saving 40 to 60 minutes per worker per day, while the other  $61\%$  are getting nothing. The structural difference is not which tools they bought but whether AI lives inside the work people already do or sits in a separate tab they have to remember to open. A Harvard Business Review and BCS study names the cognitive cost of
+the wrong approach. At brain fry, a measurable form of mental fatigue that rises in direct proportion to how many trolls a person has to monitor and babysit.
+## KEY FINDINGS
+- Goldman Sachs Merch 2026 At Adoption Tracker confirms only 18.7% of U.S. businesses have adopted AI, essentially that month over month. Among those that have, workers with ChatGPT Enterprise accounts save 4% to 64 minutes per day and 70% use new complete tasks they previously could not do at all. The adoption of by company size is stark. Since with 200 or more employees show 33.3% adoption vs. 27.6% for firms with 22 to 49 employees. The Fortune article “having a directly usable: the companies using AI are pulling ahead, and most of their competitors are not even in the race yet.”
+- Harvard Business Review and BES study published March 5, 2026 (Bedard et al., When Using AI Leads to Brain Fry) surveyed nearly 1,500 full-time U.S. employees and found a measurable phenomenon called AI brain fry, defined as acute cognitive fatigue from managing multiple AI tools simultaneously. Key data rates requiring high AI oversight demand 14% more mental effort and cause a 12% increase in mental fatigue. Workers using three or more AI tools reported worse outcomes than those using one or two. The one scenario where AI reduces burnout is when it replaces routine or repetitive tasks rather than adding new ones to monitor. This is the article’s resolution.
+- A separate HBR study published February 9, 2026 (Ranganathan and Ye, UC Berkeley, Mass. AI Queen’s Reduce Work It Intervifies 10 Filling 200 employees at a tech company). 6 months and found AI-expanded drug researchers called the sphere of accountability. Workers took on a broader scope of tasks, worked at a faster pace, and extended work into more hours of the day. When without being asked, This is the mechanism behind the founder’s growing to-do list. AI makes you faster or tasks so you or your team absorbs more tasks and the list grows.
+- Anti-Trait’s 2026 State-of-the-Worldace report analyzed 10,594 users 180 days before and after AI adoption. Time spent on every job category increased after AI adoption: emails up 134%, messaging up 145%, business management tools up 94%. Deep-focus were sessions felt 9%. The report’s conclusion is the strongest single line available for the article’s validation section: the data is unambiguous, AI does not reduce workloads.
+- The Worlday January 2026 survey found 80% of employees said AI saved than 1 to 7 hours per week, but they also reported losing 40% of those efficiency gains to correcting, rewriting, editing, or fact-checking AI output. This is the Verification Task. Founder language: you saved an AI then spent 24 minutes checking whether the AI got it right. For a non-technical founder with no dedicated staff to absorb that checking, the tax hits harder than it does at an enterprise.
+- The structural difference between companies getting time back and those getting more to do items is not the tools, it is integration depth. The Goldman data makes this explicit gains appear only in the limited areas where geodetic AI has been deployed into actual workflows. The BES study confirms the positive case: workers using AI to replace repetitive tasks rather than to add new capabilities to manage reported lower burnout and greater engagement. Reddit signal from UN/In/Una/Business and UN/Hopness/Ridealong confirms founders are living this: nobody cares about AI; they care about not missing leads, saving 10 hours a week, or stopping data entry headaches.
+- ChBC April 6, 2026 quotes Dennis Stoltz, head of applied psychology at the American Psychological Association, making the most founder-relevant diagnosis available: we move, designed the workplace for three years of tools, right now we have just three, it on people. Workers blame themselves when the real issue is structural. This is the validation the article needs to open with: the frustration is not a personal failure, it is a design problem.
+- Priority model lab scan for the last 14 days. Anthropic released Claude Claus 4.7 yr April 19, 2025 and launched Claude Design on April 17, 2026, a new Anthropic Labs product that lets users collaborate with Claude to create visual work including designs, prototypes, slides, and one-sayers without hiring a designer. Claude Design is directly relevant to Sandra’s audience and warrants a standalone explainer topic framed as: The New Claude Tool That Turns Your Ideas into Designs Without Hiring a Designer. Spanish released ChatGPT Business Workspace Analytics in April 2026 but this release is less immediately founder-relevant than Claude Design for Sandra’s.
+specific audience
+## SOURCES
+- At is saving workers up to an hour a day but Goldman Sachs says 80% of companies aren't using it yet
+- When Using AI Leads to Brain Fry
+- AI Doesn't Reduce Work It Intensified
+- AI promised supreme productivity but it's actually shaming workloads, time spent emailing has doubled, focused work sessions fall 8%
+- Using AI can add extra labor and cause strain fry for workers, experts say, it's not a magic bullet
+- AI and the Rise of Cognitive Overload Spent 6 months building AI solutions nobody wanted. Here's what I learned.
+- 80% say AI saves time but 27% of those hours go to reviewing, correcting, and reading what AI got wrong
+- The AI Productivity Paradox: Why More AI Tools Are Making Workers More Enhanced, Not Less Introducing Claude Design by Anthropos Labs
+## TAGS
+|  STRATEGY | AI-ADOPTION  |
+| --- | --- |
+|  OPERATIONS | TOOLS  |
+|  LEADERSHIP | NOI  |
+|  SUTSNATION |   |
+## SMEA
+## Approve &amp; Publish
+Send Back
+☐ Delete from pipeline
