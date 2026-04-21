@@ -8,6 +8,7 @@ import { reviewDraftCritique } from './common/draftCritique';
 import { generateAllLinkedInPosts } from './common/linkedInPosts';
 import { normalizeSignoff } from './common/signoff';
 import { stripPaywalledLinks } from './common/paywall';
+import { analyzeKeywordPlacement, fixUpMissingKeywordPlacements } from './common/verifyKeywordPlacement';
 
 export async function startArticle(input: {
   topicId?: string;
@@ -167,7 +168,25 @@ ${brief.competitorInsights ? `## Competitor Analysis
 Top competing articles target these keywords: ${brief.competitorInsights.commonKeywords?.join(', ') || 'n/a'}
 Content gaps to exploit (angles competitors miss): ${brief.competitorInsights.gaps?.join('; ') || 'n/a'}` : ''}
 
-${topicKeyword ? `## SEO Target\nPrimary focus keyword: "${topicKeyword}". Include this naturally in the title, first paragraph, and 2-3 more times in the body. Do not force it.` : ''}
+${topicKeyword ? `## SEO Target — REQUIRED
+
+Primary focus keyword: "${topicKeyword}"
+
+This is NOT a suggestion. The article MUST include this exact phrase in ALL of the following locations. Not optional. Not "if it fits." If the article would read awkwardly with the keyword in one of these locations, rewrite the sentence so it reads naturally WITH the keyword rather than dropping the keyword.
+
+Required placements:
+1. **Title.** The exact phrase "${topicKeyword}" (or a very minor variant like singular/plural, or "your" instead of "the") must appear in the article title.
+2. **First 150 words.** The exact phrase must appear in the opening — ideally in the first two paragraphs, definitely within the first 150 words.
+3. **Excerpt.** The excerpt (the 1-2 sentence hook at the top separated by ---) must contain the exact phrase.
+4. **At least one H2 heading.** One of the ## section headings must include the phrase or a close variant.
+5. **Body, 2-4 additional times.** Throughout the body, the phrase should appear 2-4 more times naturally. Keyword density should land between 0.5% and 3% of total word count. Counting for a 1,500-word article: 7 to 45 appearances total across title + body. Aim for 4-6 total.
+
+How to weave without forcing:
+- If a sentence about "AI tools" would work with "AI tools that aren't saving time" — use the full phrase instead.
+- If a section heading says "Why The Tools Feel Broken" — change it to "Why Your AI Tools Aren't Saving You Time".
+- Don't paraphrase the keyword ("AI tools that eat your day" ≠ "AI tools not saving time"). Use the EXACT phrase where listed above; paraphrased variants only count as additional mentions on top of the required exact placements.
+
+Non-negotiable rule: every article must be drafted with the keyword already in the title, excerpt, intro, at least one heading, and at least 3-5 times in the body. This is checked programmatically after drafting — articles missing the keyword in the required locations are sent back for rewrite.` : ''}
 
 ${AUDIENCE_PROFILE}
 
@@ -274,21 +293,44 @@ ${tags.join(', ')}
 ## Current OG Description
 ${ogDescription}
 
-## Your Tasks
+${topicKeyword ? `## Focus Keyword — LOCKED
 
-1. **Optimize the title for search.** Keep it compelling and human, but make sure it includes a clear primary keyword phrase that someone would actually search for. Don't stuff keywords. The title should still sound like something a smart person would click on.
+The focus keyword for this article is already set: "${topicKeyword}"
 
-2. **Improve heading structure.** Make sure ## headings use natural keyword variations. Each section should target a subtopic someone might search for. Don't force keywords where they don't belong.
+This is LOCKED. Do not change it. Do not suggest a different keyword. Your FOCUS_KEYWORD output MUST be exactly "${topicKeyword}".
 
-3. **Add a focus keyword phrase.** Identify the single best keyword phrase (2-4 words) this article should rank for. This should be what a non-technical founder would actually type into Google.
+Your job in this pass is NOT to pick a keyword. It's to verify the article correctly uses the locked keyword everywhere it needs to appear and FIX the article if it doesn't.
 
-4. **Optimize the excerpt** for search snippets. Keep it to 1-2 sentences, include the focus keyword naturally.
+## Mandatory Keyword Placement Checklist
 
-5. **Write the OG description between 140 and 160 characters.** This is critical. Shorter than 140 wastes search snippet real estate; longer than 160 gets truncated. Count carefully. Include the focus keyword naturally. Make it compelling enough that someone scrolling search results wants to click.
+Before returning the optimized article, verify every one of these is true. If any fails, rewrite the affected element to make it true:
 
-6. **Review the body.** Make sure the focus keyword appears naturally in the first paragraph and at least 2-3 more times throughout, without forcing it. Add internal context or clarifying sentences if they help the article rank for related queries. Do NOT add fluff, filler paragraphs, or unnatural keyword repetitions.
+- [ ] Title contains "${topicKeyword}" (or a minor variant: singular/plural, "your" vs "the"). If the current title doesn't, rewrite it to include the exact phrase.
+- [ ] Excerpt contains "${topicKeyword}". If not, rewrite the excerpt.
+- [ ] OG Description contains "${topicKeyword}". If not, rewrite it.
+- [ ] First 150 words of the body contain "${topicKeyword}". If not, rewrite the opening paragraphs.
+- [ ] At least one ## heading contains "${topicKeyword}" or a close variant. If not, rewrite one heading.
+- [ ] The body as a whole contains "${topicKeyword}" at least 4 times total (title + headings + body counts toward this). If not, find 1-2 more natural placements.
 
-7. **Suggest tags** from this list that genuinely fit: strategy, ai-adoption, operations, case-study, tools, leadership, methodology, roi, automation, data, implementation
+None of these placements are optional. If the phrase reads awkwardly in a given spot, rewrite the sentence to read naturally WITH the phrase rather than dropping the phrase.
+
+` : `## Focus Keyword
+
+No focus keyword is pre-set for this article. Identify the single best keyword phrase (2-4 words) someone non-technical would actually type into Google to find this article.
+
+Then verify all the same mandatory placements apply: title, excerpt, OG description, first 150 words, at least one H2 heading, and 4+ total appearances in title + body combined.
+
+`}## Your Other Tasks
+
+1. **Keep the title compelling and human** — still a title someone would click on, just with the focus keyword woven in.
+
+2. **Improve heading structure** so ## headings use natural keyword variations and related subtopic phrases where appropriate. Don't force keywords into every heading.
+
+3. **Write the OG description between 140 and 160 characters.** This is critical. Shorter than 140 wastes search snippet real estate; longer than 160 gets truncated. Count carefully. MUST include the focus keyword naturally (see checklist above). Compelling enough that someone scrolling search results wants to click.
+
+4. **Review the body.** Beyond the mandatory keyword placements above, add internal context or clarifying sentences only if they help the article rank for related queries. Do NOT add fluff, filler paragraphs, or unnatural keyword repetitions.
+
+5. **Suggest tags** from this list that genuinely fit: strategy, ai-adoption, operations, case-study, tools, leadership, methodology, roi, automation, data, implementation
 
 ## Rules
 - Do not change Sondra's voice or tone. She writes in plain, direct language.
@@ -354,6 +396,55 @@ TAGS: [comma-separated]
   seoBody = strippedBody;
   if (strippedUrls.length > 0) {
     console.log(`[${articleId}] Stripped ${strippedUrls.length} paywalled link(s) from draft`);
+  }
+
+  // Lock the focus keyword to the topic keyword when one was set. The SEO
+  // pass is told not to change it, but we enforce here as belt-and-suspenders
+  // so the rest of the pipeline works from the original intended keyword.
+  if (topicKeyword && topicKeyword.trim().length > 0) {
+    focusKeyword = topicKeyword;
+  }
+
+  // Verify the focus keyword actually appears in all the places it should.
+  // If the SEO pass left gaps (title missing keyword, keyword not in intro,
+  // no heading containing it, etc.), run a targeted fix-up pass rather than
+  // shipping an article that fails most of the SEO score checks.
+  if (focusKeyword && focusKeyword.trim().length > 0) {
+    const placement = analyzeKeywordPlacement({
+      keyword: focusKeyword,
+      title: seoTitle,
+      excerpt: seoExcerpt,
+      ogDescription: seoOgDescription,
+      body: seoBody,
+    });
+
+    if (placement.missingLocations.length > 0) {
+      console.log(`[${articleId}] Focus keyword missing from: ${placement.missingLocations.join(', ')}. Running fix-up pass.`);
+      try {
+        const fixedUp = await fixUpMissingKeywordPlacements({
+          keyword: focusKeyword,
+          title: seoTitle,
+          excerpt: seoExcerpt,
+          ogDescription: seoOgDescription,
+          body: seoBody,
+          placement,
+        });
+        if (fixedUp.wasFixedUp) {
+          seoTitle = fixedUp.title;
+          seoExcerpt = fixedUp.excerpt;
+          seoOgDescription = fixedUp.ogDescription;
+          // Re-normalize the sign-off and re-strip paywalls in case the
+          // fix-up touched the body
+          seoBody = normalizeSignoff(fixedUp.body);
+          seoBody = stripPaywalledLinks(seoBody).body;
+          console.log(`[${articleId}] Keyword fix-up complete. Locations fixed: ${fixedUp.locationsFixed.join(', ')}`);
+        }
+      } catch (err) {
+        console.error(`[${articleId}] Keyword fix-up failed, continuing with original draft:`, err);
+      }
+    } else {
+      console.log(`[${articleId}] Focus keyword placement check: all 6 required locations present.`);
+    }
   }
 
   const seoWordCount = seoBody.split(/\s+/).filter(Boolean).length;
