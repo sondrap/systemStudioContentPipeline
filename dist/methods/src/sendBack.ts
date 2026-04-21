@@ -4,6 +4,7 @@ import { VOICE_PROFILE, AUDIENCE_PROFILE } from './common/voiceProfile';
 import { reviewSeoCritique } from './common/seoCritique';
 import { reviewDraftCritique } from './common/draftCritique';
 import { normalizeSignoff } from './common/signoff';
+import { stripPaywalledLinks } from './common/paywall';
 
 export async function sendBack(input: { id: string; revisionNotes: string }) {
   auth.requireRole('admin');
@@ -71,6 +72,7 @@ Keep the same general structure unless the revision notes say otherwise.
 Preserve the audience orientation. Even when revising, stay speaking TO a non-technical founder, not ABOUT a technology. If the revision notes conflict with the audience lens, prioritize the revision notes (Sondra's judgment wins), but do not introduce new technical jargon or enterprise examples that the original draft avoided.
 **Preserve inline images** already in the draft (lines like \`![alt](https://i.mscdn.ai/...)\`) unless the revision notes explicitly say to remove them. The images were placed at specific break points for visual rhythm.
 **Preserve existing outbound links** and add more where revision notes request them. When referencing specific data, quotes, surveys, or claims, link inline using markdown link syntax. The sources listed in the Research Brief above have the URLs to use.
+**Never link to paywalled publications.** Avoid Forbes, WSJ, NYT, Bloomberg, FT, Harvard Business Review, The Atlantic, Economist, Business Insider, Wired, Substack subscriber-only posts, Medium members-only posts, and any other source that hides content behind a subscribe wall. If the existing draft or research brief contains a paywalled link, replace it with a freely-accessible equivalent (primary source, press release, company blog, or free coverage of the same story) OR remove the link and mention the publication by name in prose. Sending a reader to a paywall is worse than having no citation at all.
 **The article MUST end with Sondra's signature sign-off.** The very last thing in the article body, after the final content paragraph, must be a blank line and then these two lines on their own:
 
 Don't overthink it,
@@ -89,7 +91,15 @@ Output ONLY the revised article body in markdown. No preamble, no explanation.`,
   // model forgot it, added it mid-article, or wrote it on a single line,
   // this makes it canonical. Runs deterministically so every revision ships
   // with the correct close regardless of what the model does.
-  const normalizedContent = normalizeSignoff(content);
+  // Normalize signature sign-off, then strip any paywalled links the rewrite
+  // introduced. Both are belt-and-suspenders filters applied after the AI
+  // stage — the prompt tells the model not to do these things, but we don't
+  // trust that guarantee alone for things that affect every reader.
+  const signoffNormalized = normalizeSignoff(content);
+  const { body: normalizedContent, strippedUrls } = stripPaywalledLinks(signoffNormalized);
+  if (strippedUrls.length > 0) {
+    console.log(`[${articleId}] Send-back rewrite: stripped ${strippedUrls.length} paywalled link(s)`);
+  }
   const wordCount = normalizedContent.split(/\s+/).filter(Boolean).length;
 
   // Save the rewritten body and clear revision notes first so the user sees

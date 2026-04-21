@@ -7,6 +7,7 @@ import { reviewSeoCritique } from './common/seoCritique';
 import { reviewDraftCritique } from './common/draftCritique';
 import { generateAllLinkedInPosts } from './common/linkedInPosts';
 import { normalizeSignoff } from './common/signoff';
+import { stripPaywalledLinks } from './common/paywall';
 
 export async function startArticle(input: {
   topicId?: string;
@@ -90,6 +91,7 @@ Research process:
 2. Search SIGNAL sources for recent developments, data, and expert commentary that give the article credibility.
 3. Look for small-business-relevant examples. Prefer: "a coaching business with 200 clients," "a 12-person agency," "a solo consultant who lost a deal to a missed follow-up." Avoid: "a Fortune 500 telecom saved $2.3M," "100,000 queries per day," "enterprise compliance teams."
 4. Scrape the most relevant pages for full content.
+5. PREFER FREELY-ACCESSIBLE SOURCES. When the same fact or quote is available from both a paywalled publication (Forbes, WSJ, NYT, Bloomberg, FT, HBR, The Atlantic, Economist, Business Insider, Wired, etc.) AND a freely-accessible source (primary research, press release, company blog, freely-accessible news coverage), always capture the free one. The drafting agent will use these URLs as inline citations and we cannot send readers to paywalls. If a paywalled source is unavoidable because it's the only record of the fact, still include it but also note "[paywalled]" in the relevance field so the drafting agent knows to handle it carefully.
 
 COMPETITOR ANALYSIS: Also analyze the top 3-5 Google results for this topic${topicKeyword ? ` and for the keyword "${topicKeyword}"` : ''}. For each competing article, note the URL, title, apparent focus keyword, and approximate word count. Then identify:
 - Common keywords used across competing articles
@@ -194,6 +196,7 @@ Specifically:
 - End with --- followed by suggested tags from: strategy, ai-adoption, operations, case-study, tools, leadership, methodology
 - And an ogDescription (max 160 chars)
 - **Link to sources naturally.** When referencing specific data, quotes, surveys, or claims from the research, link to the source inline using markdown link syntax: \`[like this](https://example.com/source)\`. Aim for 2-5 outbound links across the article. The research brief above contains the URLs. These links build credibility and SEO authority. Do not pile links in a "sources" section at the end. Weave them into the prose where the fact or quote appears.
+- **Avoid paywalled sources.** Never link to paywalled publications (Forbes, WSJ, NYT, Bloomberg, FT, Harvard Business Review, The Atlantic, Economist, Business Insider, Wired, Substack subscriber-only posts, Medium members-only posts). Readers clicking expecting value will hit a subscribe wall. If the research brief contains a paywalled source, cite the underlying primary source or a freely-accessible equivalent (the original research paper, press release, company blog, or a reputable free alternative covering the same story). If there is genuinely no free alternative and the paywalled source is the only record of the fact, reference the publication by name in prose without a link rather than sending readers to a paywall.
 
 ## Output format
 excerpt: [1-2 sentence hook]
@@ -343,6 +346,15 @@ TAGS: [comma-separated]
   // after the AI stages as a belt-and-suspenders safety net so no article
   // ever ships without the canonical close, no matter what the model does.
   seoBody = normalizeSignoff(seoBody);
+
+  // Strip any paywalled outbound links the drafting agent snuck in despite
+  // the prompt guidance. Link text is preserved as plain prose so the
+  // attribution stays but the reader doesn't get sent to a subscribe wall.
+  const { body: strippedBody, strippedUrls } = stripPaywalledLinks(seoBody);
+  seoBody = strippedBody;
+  if (strippedUrls.length > 0) {
+    console.log(`[${articleId}] Stripped ${strippedUrls.length} paywalled link(s) from draft`);
+  }
 
   const seoWordCount = seoBody.split(/\s+/).filter(Boolean).length;
 
