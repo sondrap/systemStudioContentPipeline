@@ -377,28 +377,74 @@ export function defaultImageTypeForPost(postType: string): LinkedInImageType {
 //   - Prefer sentences that feel standalone (no starting conjunctions)
 //   - Skip markdown artifacts (headers, links, list items)
 //   - Skip the sign-off and very short fragments
-export function extractQuoteFromArticleBody(body: string): string {
-  if (!body || body.trim().length === 0) return '';
+// Returns ranked quote candidates from the article body. Scored by length
+// sweet spot, sentence count, first-person voice, etc. Higher score = better
+// standalone quote. Returns the raw list so callers can pick the top one,
+// skip already-used quotes (for regen variety), or present choices.
+export function rankArticleQuoteCandidates(body: string): string[] {
+  if (!body || body.trim().length === 0) return [];
 
-  // Break body into candidate lines. Filter to real sentences in prose,
-  // skipping markdown structures.
   const lines = body
     .split(/\n+/)
     .map(l => l.trim())
     .filter(l => {
       if (l.length < 40 || l.length > 300) return false;
-      if (l.startsWith('#')) return false;           // headings
-      if (l.startsWith('-') || l.startsWith('*')) return false;  // list items
-      if (l.startsWith('>')) return false;           // blockquotes (attributed quotes, not her voice)
-      if (l.startsWith('![')) return false;          // images
-      if (/^[Dd]on.t overthink it/.test(l)) return false;  // sign-off
+      if (l.startsWith('#')) return false;
+      if (l.startsWith('-') || l.startsWith('*')) return false;
+      if (l.startsWith('>')) return false;
+      if (l.startsWith('![')) return false;
+      if (/^[Dd]on.t overthink it/.test(l)) return false;
       if (/^SP$/.test(l)) return false;
-      if (!/[.!?]$/.test(l)) return false;           // must end with sentence terminator
+      if (!/[.!?]$/.test(l)) return false;
       return true;
     });
 
-  if (lines.length === 0) {
-    // Fallback: try to pull a single sentence from anywhere in the body
+  if (lines.length === 0) return [];
+
+  const scored = lines.map(line => {
+    let score = 0;
+    const len = line.length;
+    if (len >= 60 && len <= 180) score += 20;
+    else if (len >= 40 && len <= 60) score += 10;
+    else if (len >= 180 && len <= 220) score += 10;
+    const sentenceCount = (line.match(/[.!?]/g) || []).length;
+    if (sentenceCount === 1) score += 10;
+    if (/^[A-Z]/.test(line) && !/^(And|But|Or|So|Then|Because|Which|That)\b/i.test(line)) score += 5;
+    const linkCount = (line.match(/\[[^\]]+\]\([^)]+\)/g) || []).length;
+    if (linkCount > 1) score -= 10;
+    if (line.includes('...') || line.includes('\u2026')) score -= 5;
+    if (/\b(I|my|me|we|our|us)\b/.test(line)) score += 3;
+    return { line, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  // Strip markdown and cap length on each candidate before returning
+  return scored.map(({ line }) => {
+    const clean = line
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .trim();
+    return clean.length > 220 ? clean.slice(0, 217).replace(/\s+\S*$/, '') + '...' : clean;
+  });
+}
+
+// Extract a punchy standalone line directly from the ARTICLE BODY for use
+// on a quote card. This is the right source for quotes because the article
+// body is authored content — lines Sondra wrote or edited — whereas the
+// LinkedIn post content is an AI rephrasing that can drift into new
+// "quotable" lines that sound like her but aren't actually in her article.
+//
+// `excludeQuotes`: lines to skip (e.g., the one currently on the image,
+// so "Regen image" gives variety instead of picking the same top-scored
+// line over and over). Compared with normalized whitespace so small
+// formatting differences don't defeat the filter.
+export function extractQuoteFromArticleBody(body: string, excludeQuotes: string[] = []): string {
+  const candidates = rankArticleQuoteCandidates(body);
+  if (candidates.length === 0) {
+    // Fallback: try to pull any sentence from anywhere in the body
     const sentences = body.match(/[^.!?\n]+[.!?]/g) || [];
     const fallback = sentences.find(s => {
       const trimmed = s.trim();
@@ -407,47 +453,15 @@ export function extractQuoteFromArticleBody(body: string): string {
     return fallback?.trim() || '';
   }
 
-  // Score each candidate. Higher score = better standalone quote.
-  const scored = lines.map(line => {
-    let score = 0;
-    const len = line.length;
-    // Sweet spot: 60-180 chars
-    if (len >= 60 && len <= 180) score += 20;
-    else if (len >= 40 && len <= 60) score += 10;
-    else if (len >= 180 && len <= 220) score += 10;
-    // Single-sentence line is better than multi-sentence
-    const sentenceCount = (line.match(/[.!?]/g) || []).length;
-    if (sentenceCount === 1) score += 10;
-    // Lines that start with capital letters and don't start with conjunctions
-    // read better as standalone quotes
-    if (/^[A-Z]/.test(line) && !/^(And|But|Or|So|Then|Because|Which|That)\b/i.test(line)) {
-      score += 5;
-    }
-    // Penalize lines that are mostly hyperlinks / have heavy markdown
-    const linkCount = (line.match(/\[[^\]]+\]\([^)]+\)/g) || []).length;
-    if (linkCount > 1) score -= 10;
-    // Penalize lines with ellipses (likely incomplete thoughts)
-    if (line.includes('...') || line.includes('\u2026')) score -= 5;
-    // Bonus for first-person voice (matches Sondra's signature)
-    if (/\b(I|my|me|we|our|us)\b/.test(line)) score += 3;
-    return { line, score };
-  });
+  // Skip any candidate matching an excluded quote (whitespace-normalized)
+  const normalize = (s: string) => s.replace(/\s+/g, ' ').toLowerCase().trim();
+  const excludeSet = new Set(excludeQuotes.filter(Boolean).map(normalize));
 
-  scored.sort((a, b) => b.score - a.score);
-  const best = scored[0].line;
-
-  // Strip any inline markdown (links) and normalize
-  const clean = best
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // strip markdown links
-    .replace(/\*\*([^*]+)\*\*/g, '$1')         // strip bold
-    .replace(/\*([^*]+)\*/g, '$1')             // strip italic
-    .replace(/`([^`]+)`/g, '$1')               // strip code
-    .trim();
-
-  if (clean.length > 220) {
-    return clean.slice(0, 217).replace(/\s+\S*$/, '') + '...';
-  }
-  return clean;
+  const firstUnseen = candidates.find(c => !excludeSet.has(normalize(c)));
+  // If every top candidate was excluded (e.g., user has regenerated many
+  // times), fall back to the top-scored candidate — getting the same
+  // quote back is better than getting nothing.
+  return firstUnseen || candidates[0];
 }
 
 // Kept for backward compat and as a last-resort fallback when no article
@@ -524,15 +538,67 @@ export function extractStatFromPost(content: string): { number: string; label: s
   return { number: foundNumber, label };
 }
 
+// AI-driven quote picker. Used when the user provides a direction (e.g.,
+// "focus on the pricing angle" or "pick something more personal"). The AI
+// reads the article body and chooses a verbatim line matching the direction.
+// Validated against the article body to reject hallucinations.
+async function pickQuoteWithDirection(opts: {
+  articleBody: string;
+  direction: string;
+  excludeQuotes: string[];
+}): Promise<string> {
+  const candidates = rankArticleQuoteCandidates(opts.articleBody);
+  // Cap candidates sent to the model so the prompt stays small
+  const candidateSample = candidates.slice(0, 40);
+
+  const excludeList = opts.excludeQuotes.filter(Boolean).length > 0
+    ? `\n\nAVOID these quotes (already used or dismissed):\n${opts.excludeQuotes.filter(Boolean).map(q => `- "${q}"`).join('\n')}`
+    : '';
+
+  const { content } = await mindstudio.generateText({
+    message: `Pick the best verbatim quote from the article below for a LinkedIn social card image.
+
+User's direction: "${opts.direction}"
+
+Candidate sentences (ranked by standalone quality — prefer these, but you may pick any other sentence from the article body too):
+${candidateSample.map((c, i) => `${i + 1}. ${c}`).join('\n')}
+${excludeList}
+
+Article body:
+${opts.articleBody.substring(0, 10000)}
+
+Return ONLY the chosen quote, verbatim from the article, as a single line of text. No quotation marks, no preamble, no explanation. It must appear word-for-word in the article body. Under 220 characters.`,
+    modelOverride: {
+      model: 'claude-4-6-sonnet',
+      temperature: 0.4,
+      maxResponseTokens: 500,
+    },
+  });
+
+  const picked = content.trim().replace(/^["\u201C\u201D'']+|["\u201C\u201D'']+$/g, '').trim();
+
+  // Validate it's actually in the article
+  const normalize = (s: string) => s.replace(/\s+/g, ' ').toLowerCase();
+  if (picked.length > 0 && normalize(opts.articleBody).includes(normalize(picked))) {
+    return picked;
+  }
+  // Hallucinated or empty — fall back to heuristic with the exclude list
+  console.warn('[pickQuoteWithDirection] AI picked a quote not in article body, falling back');
+  return extractQuoteFromArticleBody(opts.articleBody, opts.excludeQuotes);
+}
+
 // Generate the appropriate image for a LinkedIn post. Used by both the
 // initial generation flow (in startArticle / generateLinkedInPosts) and
 // the per-variant regenerate flow.
 //
 // Quote source priority (highest wins):
 //   1. `customText` — explicit user edit, trust as-is
-//   2. Article body extraction — punchy verbatim line from Sondra's article
-//   3. LinkedIn post content — last-resort fallback when no article body is
-//      available (e.g., legacy flow that didn't pass it through)
+//   2. `direction` — AI picks a quote from article body guided by this
+//      free-text instruction from the user
+//   3. Article body extraction — punchy verbatim line, skipping any in
+//      `excludeQuotes` so regen gives variety
+//   4. LinkedIn post content — last-resort fallback when no article body is
+//      available
 //
 // The key shift from the old behavior: we no longer default to extracting
 // from `postContent`. The LinkedIn post is an AI rephrasing of the article
@@ -549,6 +615,13 @@ export async function generateImageForPost(opts: {
   customText?: string;
   customNumber?: string;
   customLabel?: string;
+  // Free-text direction for the AI quote picker. When provided and no
+  // customText, AI chooses a verbatim quote from the article body based
+  // on this guidance (e.g., "something more confessional, not a data point").
+  direction?: string;
+  // Quotes to avoid picking. Used by regen to cycle through candidates
+  // instead of returning the same top-scored line every time.
+  excludeQuotes?: string[];
 }): Promise<GeneratedLinkedInImage> {
   const imageType = defaultImageTypeForPost(opts.postType);
   const handle = opts.authorHandle || AUTHOR_HANDLE;
@@ -575,14 +648,20 @@ export async function generateImageForPost(opts: {
     });
   }
 
-  // Quote card — source priority is customText → article body → post content
+  // Quote card — source priority: customText → AI with direction → article
+  // body extraction (with exclude list for regen variety) → post content
+  const excludeQuotes = opts.excludeQuotes || [];
   let quoteText: string;
   if (opts.customText && opts.customText.trim().length > 0) {
     quoteText = opts.customText;
+  } else if (opts.direction && opts.direction.trim().length > 0 && opts.articleBody) {
+    quoteText = await pickQuoteWithDirection({
+      articleBody: opts.articleBody,
+      direction: opts.direction.trim(),
+      excludeQuotes,
+    });
   } else if (opts.articleBody) {
-    quoteText = extractQuoteFromArticleBody(opts.articleBody);
-    // If the article extractor genuinely can't find a sentence (very short
-    // article or weird formatting), fall back to post content.
+    quoteText = extractQuoteFromArticleBody(opts.articleBody, excludeQuotes);
     if (!quoteText) {
       quoteText = extractQuoteFromPost(opts.postContent);
     }

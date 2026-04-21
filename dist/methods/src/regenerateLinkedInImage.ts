@@ -8,11 +8,10 @@ import { withDbRetry } from './common/retry';
 //
 //   - Try a different quote line on the image (without rewriting the post)
 //   - Edit the stat number or label on a stat card
-//   - Re-render after a brand color change to the template
-//
-// If customText / customNumber / customLabel are provided, those override
-// the auto-extracted values. Otherwise the extractor picks fresh values
-// from the current post content.
+//   - Steer the quote pick with free-text direction ("focus on the pricing
+//     angle" or "pick something more confessional")
+//   - Just hit Regen until she sees one she likes (cycles through top
+//     candidates instead of returning the same quote every time)
 export async function regenerateLinkedInImage(input: {
   articleId: string;
   variantId: string;
@@ -21,6 +20,11 @@ export async function regenerateLinkedInImage(input: {
   customText?: string;
   customNumber?: string;
   customLabel?: string;
+  // Free-text direction for the AI quote picker. When provided and no
+  // customText, AI picks a verbatim quote from the article body based on
+  // this guidance. Examples: "focus on the pricing angle", "pick something
+  // more personal/confessional", "find the contrarian claim".
+  direction?: string;
 }) {
   auth.requireRole('admin');
 
@@ -31,20 +35,25 @@ export async function regenerateLinkedInImage(input: {
   const existing = variants.find(v => v.id === input.variantId);
   if (!existing) throw new Error('LinkedIn variant not found.');
 
+  // Automatically exclude the current quote so a plain "Regen" click cycles
+  // to a different candidate instead of picking the same top-scored line.
+  // The customText path ignores this (explicit edit wins).
+  const excludeQuotes = [
+    existing.imageText,
+    existing.imageQuote,
+  ].filter((q): q is string => !!q && q.length > 0);
+
   const image = await generateImageForPost({
     postType: existing.postType,
     postContent: existing.content,
-    // Always pass the article body so the extractor can pull a verbatim
-    // quote from Sondra's actual writing rather than falling back to the
-    // AI-rephrased post content.
     articleBody: article.body || '',
     customText: input.customText,
     customNumber: input.customNumber,
     customLabel: input.customLabel,
+    direction: input.direction,
+    excludeQuotes,
   });
 
-  // Replace the image fields in-place, keeping all other variant fields
-  // (post text, edit status, posted status, notes) untouched.
   const updatedVariants = variants.map(v =>
     v.id === input.variantId
       ? {

@@ -123,6 +123,7 @@ export const api = createClient<{
     customText?: string;
     customNumber?: string;
     customLabel?: string;
+    direction?: string;
   }): Promise<{ article: Article; image: { imageUrl: string; imageType: 'quote' | 'stat'; text: string; number?: string; label?: string } }>;
   resumeArticle(input: { id: string }): Promise<{ article: Article; recovered: { heroImage: boolean; seoCritique: boolean; draftCritique: boolean; linkedInPosts: number } }>;
   captureQuickTopic(input: { rawInput: string }): Promise<{ topic: Topic }>;

@@ -80,9 +80,15 @@ interface Article {
     // can edit them and regenerate.
     imageUrl?: string;
     imageType?: 'quote' | 'stat';
-    imageText?: string;            // for quote cards: the quote rendered
+    imageText?: string;            // for quote cards: the quote currently rendered
     imageNumber?: string;          // for stat cards: the headline number
     imageLabel?: string;           // for stat cards: the supporting label
+    // Verbatim quote pulled from the article body by the LinkedIn generator.
+    // Distinct from imageText (which reflects whatever is on the card right
+    // now — could be AI-picked or user-edited). Used as the "preferred
+    // quote" on first generation; also added to the exclude list on regen
+    // so the UI can cycle to a different line.
+    imageQuote?: string;
   }>;
 }
 

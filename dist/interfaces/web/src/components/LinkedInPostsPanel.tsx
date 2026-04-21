@@ -19,6 +19,7 @@ import {
   IconArrowsMaximize,
   IconPhoto,
   IconDownload,
+  IconWand,
 } from '@tabler/icons-react';
 import { Article, api } from '../api';
 import { useStore } from '../store';
@@ -213,6 +214,11 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
   // can regenerate just the social card without rewriting the post.
   const [regeneratingImage, setRegeneratingImage] = useState(false);
   const [editingImageText, setEditingImageText] = useState(false);
+  // "Direct the AI" input — free-text guidance that steers the AI's quote
+  // pick (e.g., "focus on the pricing angle", "pick something more
+  // confessional"). Separate from Edit text, which is full manual override.
+  const [showingDirection, setShowingDirection] = useState(false);
+  const [directionDraft, setDirectionDraft] = useState('');
   // Local form state for image text edits before submitting
   const [imageTextDraft, setImageTextDraft] = useState(post.imageText || '');
   const [imageNumberDraft, setImageNumberDraft] = useState(post.imageNumber || '');
@@ -331,6 +337,7 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
     customText?: string;
     customNumber?: string;
     customLabel?: string;
+    direction?: string;
   }) => {
     setRegeneratingImage(true);
     try {
@@ -343,6 +350,10 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
         updateArticleLocal(articleId, { linkedInPosts: result.article.linkedInPosts });
       }
       setEditingImageText(false);
+      // Clear the direction input after a successful AI-directed regen so
+      // the next click is a fresh prompt, not a re-run of old instructions
+      setDirectionDraft('');
+      setShowingDirection(false);
     } catch (err) {
       console.error('Image regenerate failed:', err);
       alert(friendlyErrorMessage(err));
@@ -689,14 +700,15 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
             </div>
           )}
 
-          {/* Quick action: regenerate with same source content (different
-              extraction outcome) — useful if the auto-extracted quote
-              just isn't great */}
-          {!editingImageText && (
+          {/* Quick actions row: Regen (cycles through candidates), Direct
+              the AI (steer the pick with free-text guidance), Download.
+              Hidden when Edit text form is open to reduce clutter. */}
+          {!editingImageText && !showingDirection && (
             <div style={{ display: 'flex', gap: 6 }}>
               <button
                 onClick={() => handleRegenerateImage()}
                 disabled={regeneratingImage}
+                title="Pick a different quote from the article"
                 style={{
                   flex: 1,
                   padding: '5px 8px',
@@ -710,13 +722,33 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
                 }}
               >
                 {regeneratingImage ? <IconLoader2 size={11} className="spinner" /> : <IconRefresh size={11} />}
-                Regen image
+                Regen
+              </button>
+              <button
+                onClick={() => setShowingDirection(true)}
+                disabled={regeneratingImage}
+                title="Tell the AI what kind of quote to pick"
+                style={{
+                  flex: 1,
+                  padding: '5px 8px',
+                  borderRadius: 4,
+                  border: '1px solid var(--border)',
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontSize: 11, fontWeight: 500,
+                  cursor: regeneratingImage ? 'wait' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                }}
+              >
+                <IconWand size={11} />
+                Direct AI
               </button>
               <a
                 href={post.imageUrl}
                 target="_blank"
                 rel="noopener"
                 download
+                title="Download full-size image"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                   padding: '5px 8px',
@@ -729,8 +761,87 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
                 }}
               >
                 <IconDownload size={11} />
-                Download
               </a>
+            </div>
+          )}
+
+          {/* Direct the AI form — appears when the Direct AI button is
+              clicked. User types free-text direction, AI re-picks a
+              verbatim quote from the article body guided by that input. */}
+          {showingDirection && !editingImageText && (
+            <div style={{
+              padding: 10,
+              background: 'white',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 3 }}>
+                  Tell the AI what to pick
+                </label>
+                <textarea
+                  value={directionDraft}
+                  onChange={(e) => setDirectionDraft(e.target.value)}
+                  placeholder={'Focus on the pricing angle. Pick something more confessional than a data point.'}
+                  rows={3}
+                  autoFocus
+                  style={{
+                    width: '100%', padding: '6px 8px',
+                    fontSize: 12, lineHeight: 1.4, borderRadius: 4,
+                    border: '1px solid var(--border)',
+                    outline: 'none', fontFamily: 'inherit',
+                    resize: 'vertical',
+                  }}
+                />
+                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                  The AI will pick a verbatim line from your article body matching your direction. Edit text directly if you want exact control.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={() => {
+                    if (!directionDraft.trim()) return;
+                    handleRegenerateImage({ direction: directionDraft.trim() });
+                  }}
+                  disabled={regeneratingImage || !directionDraft.trim()}
+                  style={{
+                    flex: 1,
+                    padding: '6px 10px',
+                    borderRadius: 5,
+                    border: '1px solid var(--deep-current, #365367)',
+                    background: directionDraft.trim() ? 'var(--deep-current, #365367)' : 'var(--surface-hover)',
+                    color: directionDraft.trim() ? 'white' : 'var(--text-tertiary)',
+                    fontSize: 11, fontWeight: 600,
+                    cursor: regeneratingImage ? 'wait' : (directionDraft.trim() ? 'pointer' : 'default'),
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                  }}
+                >
+                  {regeneratingImage
+                    ? <><IconLoader2 size={11} className="spinner" /> Picking...</>
+                    : <><IconWand size={11} /> Pick with this direction</>}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowingDirection(false);
+                    setDirectionDraft('');
+                  }}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 5,
+                    border: '1px solid var(--border)',
+                    background: 'transparent',
+                    color: 'var(--text-secondary)',
+                    fontSize: 11, fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
         </div>
