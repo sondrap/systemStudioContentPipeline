@@ -6,6 +6,7 @@
       "narrative": "The pipeline monitors two ecosystems — the AI practitioner world and the founder community forums — finds the intersection, and surfaces what's worth writing before Sondra has to go looking.",
       "items": [
         "source-feed-scanner.md",
+        "youtube-rss-signals.md",
         "prospect-questions-capture.md",
         "proactive-topic-radar.md",
         "research-archive.md"

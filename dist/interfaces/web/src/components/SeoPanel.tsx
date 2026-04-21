@@ -66,16 +66,23 @@ export function SeoPanel({ article, title, body, highlightKeywords, onToggleHigh
   const updateArticleLocal = useStore((s) => s.updateArticleLocal);
   const [expanded, setExpanded] = useState(true);
 
-  // Editable SEO fields
+  // Editable SEO fields. The article has two separate description fields
+  // in the database (metaDescription for Google search snippets,
+  // ogDescription for social link previews) but almost every real article
+  // wants them to say the same thing. We treat them as a single field here
+  // — reading from either (preferring whichever is populated), and writing
+  // to both on every save so they never drift apart. If one is set and the
+  // other isn't, use the populated one as the canonical source.
+  const initialDescription = article.ogDescription || article.metaDescription || '';
   const [focusKeyword, setFocusKeyword] = useState(article.focusKeyword || '');
-  const [metaDescription, setMetaDescription] = useState(article.ogDescription || '');
+  const [metaDescription, setMetaDescription] = useState(initialDescription);
   const [slug, setSlug] = useState(article.slug || '');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Sync from article when it changes externally (e.g., pipeline produced new values)
   useEffect(() => {
     setFocusKeyword(article.focusKeyword || '');
-    setMetaDescription(article.ogDescription || '');
+    setMetaDescription(article.ogDescription || article.metaDescription || '');
     setSlug(article.slug || '');
   }, [article.id]);
 
@@ -92,8 +99,15 @@ export function SeoPanel({ article, title, body, highlightKeywords, onToggleHigh
     wordCount,
   }), [title, body, focusKeyword, metaDescription, article.excerpt, slug, wordCount]);
 
-  // Debounced save for SEO field changes
-  const saveSeoFields = useCallback((fields: { focusKeyword?: string; ogDescription?: string; slug?: string }) => {
+  // Debounced save for SEO field changes. Accepts both ogDescription and
+  // metaDescription but editing the description UI field sends the value
+  // to BOTH so they never drift apart.
+  const saveSeoFields = useCallback((fields: {
+    focusKeyword?: string;
+    ogDescription?: string;
+    metaDescription?: string;
+    slug?: string;
+  }) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       try {
@@ -112,7 +126,10 @@ export function SeoPanel({ article, title, body, highlightKeywords, onToggleHigh
 
   const handleMetaChange = (val: string) => {
     setMetaDescription(val);
-    saveSeoFields({ ogDescription: val });
+    // Write to BOTH fields so the search snippet (metaDescription) and the
+    // social preview (ogDescription) stay in sync. This is the behavior the
+    // user expects — almost every real article wants the same text in both.
+    saveSeoFields({ ogDescription: val, metaDescription: val });
   };
 
   const handleSlugChange = (val: string) => {
@@ -199,7 +216,7 @@ export function SeoPanel({ article, title, body, highlightKeywords, onToggleHigh
             </div>
             <div>
               <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                Meta Description
+                Description <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>(search + social)</span>
                 <span style={{ fontWeight: 400, color: metaDescription.length > 165 ? '#C25D42' : metaDescription.length >= 120 ? 'var(--accent)' : 'var(--text-tertiary)' }}>
                   {metaDescription.length}/160
                 </span>
@@ -207,7 +224,7 @@ export function SeoPanel({ article, title, body, highlightKeywords, onToggleHigh
               <textarea
                 value={metaDescription}
                 onChange={(e) => handleMetaChange(e.target.value)}
-                placeholder="Write a compelling description for search results (140-160 chars)"
+                placeholder="Write a compelling description (140-160 chars). Used for both Google search snippets and LinkedIn/Twitter link previews."
                 rows={3}
                 style={{
                   width: '100%', padding: '6px 10px',
