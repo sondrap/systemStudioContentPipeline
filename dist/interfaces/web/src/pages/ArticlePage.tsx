@@ -67,6 +67,25 @@ export function ArticlePage() {
   // 'edit' = article writing/review work (status, critiques, SEO, image, actions).
   // 'linkedin' = LinkedIn post variants, uses the full sidebar height.
   const [sidebarTab, setSidebarTab] = useState<'edit' | 'linkedin'>('edit');
+  // Sidebar width — draggable via the divider between the article body and
+  // the sidebar. Persisted in localStorage so the user's preferred width
+  // survives page reloads and session restarts. Clamped between SIDEBAR_MIN
+  // and SIDEBAR_MAX on every update so the user can't drag the sidebar to
+  // a size that breaks the layout.
+  const SIDEBAR_MIN = 260;
+  const SIDEBAR_MAX = 720;
+  const SIDEBAR_DEFAULT = 320;
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem('articleSidebarWidth');
+      if (stored) {
+        const parsed = parseInt(stored, 10);
+        if (parsed >= SIDEBAR_MIN && parsed <= SIDEBAR_MAX) return parsed;
+      }
+    } catch { /* ignore localStorage errors */ }
+    return SIDEBAR_DEFAULT;
+  });
+  const [isDraggingSidebar, setIsDraggingSidebar] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Initialize from article
@@ -77,6 +96,42 @@ export function ArticlePage() {
       setPublished(article.status === 'published');
     }
   }, [article?.id]);
+
+  // Sidebar drag handlers. When the user grabs the divider, we attach
+  // mousemove and mouseup listeners to window so the drag keeps working even
+  // if the cursor moves off the divider itself (which it will — the divider
+  // is only 4px wide). Release saves the new width to localStorage.
+  useEffect(() => {
+    if (!isDraggingSidebar) return;
+
+    const onMouseMove = (e: MouseEvent) => {
+      // Sidebar occupies the right side of the viewport. Its width is
+      // (viewportWidth - mouseX). Clamp to the allowed range.
+      const rawWidth = window.innerWidth - e.clientX;
+      const clamped = Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, rawWidth));
+      setSidebarWidth(clamped);
+    };
+    const onMouseUp = () => {
+      setIsDraggingSidebar(false);
+      try {
+        localStorage.setItem('articleSidebarWidth', String(sidebarWidth));
+      } catch { /* ignore quota errors */ }
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    // Prevent text selection while dragging — otherwise the cursor leaves a
+    // highlighted trail through the article body as it moves
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isDraggingSidebar, sidebarWidth]);
 
   // Auto-save with debounce
   const debouncedSave = useCallback(async (newBody: string, newTitle: string) => {
@@ -450,13 +505,36 @@ export function ArticlePage() {
         </div>
       </div>
 
+      {/* Draggable divider between article body and sidebar. Hit target is
+          4px wide but visually a thin 1px border that brightens on hover.
+          Grab it with the mouse to resize the sidebar anywhere from 260px
+          to 720px. The width persists in localStorage. */}
+      <div
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setIsDraggingSidebar(true);
+        }}
+        style={{
+          width: 4,
+          flexShrink: 0,
+          cursor: 'col-resize',
+          background: isDraggingSidebar ? 'var(--deep-current, #365367)' : 'var(--border)',
+          opacity: isDraggingSidebar ? 1 : 0.5,
+          transition: isDraggingSidebar ? 'none' : 'opacity 150ms, background 150ms',
+        }}
+        onMouseEnter={(e) => { if (!isDraggingSidebar) e.currentTarget.style.opacity = '1'; }}
+        onMouseLeave={(e) => { if (!isDraggingSidebar) e.currentTarget.style.opacity = '0.5'; }}
+        title="Drag to resize sidebar"
+      />
+
       {/* Metadata panel */}
       <div style={{
-        width: 320,
-        minWidth: 320,
+        width: sidebarWidth,
+        minWidth: sidebarWidth,
+        flexShrink: 0,
         height: '100%',
         background: 'var(--surface)',
-        borderLeft: '1px solid var(--border)',
+        borderLeft: 'none',
         display: 'flex',
         flexDirection: 'column',
       }}>
