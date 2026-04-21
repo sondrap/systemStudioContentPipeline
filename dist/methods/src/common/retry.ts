@@ -24,7 +24,7 @@ const RETRYABLE_ERROR_PATTERNS = [
   /ETIMEDOUT/i,
   /socket hang up/i,
   /network error/i,
-  /503|502|504/,  // common transient HTTP status codes
+  /503|502|504|522|524/,  // transient HTTP codes (incl Cloudflare 522/524 timeouts)
 ];
 
 function isRetryable(err: unknown): boolean {
@@ -111,7 +111,10 @@ function makeUserFriendlyMessage(err: unknown): string {
     return 'A temporary network error interrupted the save. Try again in a moment.';
   }
 
-  if (/503|502|504/.test(raw)) {
+  if (/524/.test(raw)) {
+    return 'The publish request timed out while talking to systemstudio.ai. The article may have actually published — check your site, and if not, try again.';
+  }
+  if (/503|502|504|522/.test(raw)) {
     return 'The platform returned a temporary server error. Try again in a moment.';
   }
 

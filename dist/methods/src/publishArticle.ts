@@ -1,5 +1,6 @@
 import { db, auth } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
+import { withDbRetry } from './common/retry';
 
 // Load publish API credentials. In production, these come from process.env
 // (set via `mindstudio-prod secrets set PUBLISH_API_URL --dev ... --prod ...`).
@@ -83,29 +84,40 @@ export async function publishArticle(input: { id: string }) {
         seoKeywords: article.seoKeywords || [],
       };
 
-      // Use native fetch directly. The MindStudio httpRequest wrapper was
-      // returning success responses without actually reaching the external
-      // server, so we go direct.
-      const fetchStart = Date.now();
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          // MindStudio reserves the Authorization header for its own auth,
-          // so the journal API uses X-API-Key for app-level authentication.
-          'X-API-Key': apiToken,
-          'Content-Type': 'application/json',
+      // Wrap the fetch in withDbRetry so transient Cloudflare timeouts
+      // (524, 522) and other intermittent network errors get retried
+      // automatically. The systemstudio.ai journal API is upsert-on-slug,
+      // so retrying is safe — a duplicate POST for the same slug just
+      // updates the existing post rather than creating two.
+      const { responseText } = await withDbRetry(
+        async () => {
+          const fetchStart = Date.now();
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              // MindStudio reserves the Authorization header for its own auth,
+              // so the journal API uses X-API-Key for app-level authentication.
+              'X-API-Key': apiToken,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const responseText = await response.text();
+          const fetchDuration = Date.now() - fetchStart;
+
+          console.log(`Publish API: ${response.status} ${response.statusText} in ${fetchDuration}ms. Body: ${responseText.slice(0, 500)}`);
+
+          if (!response.ok) {
+            // Including the HTTP code in the thrown error so isRetryable()
+            // in the retry helper can pattern-match on it.
+            throw new Error(`Publishing failed: ${response.status} ${response.statusText}. ${responseText.slice(0, 300)}`);
+          }
+
+          return { responseText };
         },
-        body: JSON.stringify(payload),
-      });
-
-      const responseText = await response.text();
-      const fetchDuration = Date.now() - fetchStart;
-
-      console.log(`Publish API: ${response.status} ${response.statusText} in ${fetchDuration}ms. Body: ${responseText.slice(0, 500)}`);
-
-      if (!response.ok) {
-        throw new Error(`Publishing failed: ${response.status} ${response.statusText}. ${responseText.slice(0, 300)}`);
-      }
+        { label: 'publishArticle.fetch', attempts: 3 },
+      );
 
       // Parse the response to extract the published URL
       try {

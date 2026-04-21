@@ -83,15 +83,56 @@ CRITICAL: Choose ONLY from this exact object bank. Do not invent new objects.
   return JSON.parse(content) as ImageConcept;
 }
 
+// Background treatments — exactly the four options the style anchor allows.
+// We pick one per image instead of letting the model choose freely, because
+// the old prompt left the background unspecified and the model filled it
+// with color-coded panels. Rotating these kills the template feel across
+// consecutive articles.
+const BACKGROUND_TREATMENTS = [
+  'Background: a lime-washed plaster wall in soft warm cream with faint mottled variation and subtle shadow play.',
+  'Background: a sheer linen curtain backlit by a window, diffusing light into a pale warm haze.',
+  'Background: the creamy out-of-focus depth of an interior room falling into shallow blur, suggesting furniture and warmth without detail.',
+  'Background: soft afternoon light washing across a bare warm-plaster wall.',
+];
+
+// Time-of-day cues rotate alongside backgrounds to keep the visual set varied.
+const TIME_OF_DAY_CUES = [
+  'late afternoon light',
+  'mid-morning light',
+  'early evening light',
+  'quiet midday light',
+];
+
+// Pick a rotated background + time cue. We use the current millisecond as
+// entropy — for back-to-back calls (same article retry), the mod math
+// naturally varies the selection.
+function pickSceneVariation(): { background: string; timeOfDay: string } {
+  const now = Date.now();
+  return {
+    background: BACKGROUND_TREATMENTS[now % BACKGROUND_TREATMENTS.length],
+    timeOfDay: TIME_OF_DAY_CUES[Math.floor(now / 1000) % TIME_OF_DAY_CUES.length],
+  };
+}
+
 // Generate the actual image from a concept. Returns the CDN URL.
 export async function renderStillLife(concept: ImageConcept): Promise<string> {
   const objectDescriptions = concept.objects?.map(o => o.name).join(', ') ||
     'smooth ceramic sphere, folded handmade paper, coiled linen rope';
   const composition = concept.composition ||
-    'Objects arranged with generous negative space and thoughtful spacing.';
+    'Objects placed casually as if just used and set down, with generous negative space on one side.';
+
+  // Rotate background treatment and time-of-day per image so the visual set
+  // varies across the blog instead of every image looking template-cut.
+  const variation = pickSceneVariation();
 
   const { imageUrl } = await mindstudio.generateImage({
-    prompt: `${IMAGE_STYLE_ANCHOR} Objects in the composition: ${objectDescriptions}. ${composition} Each object rendered with clear, recognizable silhouettes so viewers immediately understand what they are. Arranged thoughtfully with generous negative space. Composition should feel intentional and meaningful, as if each object was carefully placed to tell a story.`,
+    prompt: `${IMAGE_STYLE_ANCHOR}
+
+For THIS image specifically:
+${variation.background}
+The scene is lit by ${variation.timeOfDay}.
+
+Objects present in the scene: ${objectDescriptions}. ${composition} Each object rendered with clear, recognizable silhouettes so the viewer immediately understands what they are.`,
     imageModelOverride: {
       model: 'seedream-4.5',
       config: {

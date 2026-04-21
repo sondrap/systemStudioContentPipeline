@@ -90,7 +90,35 @@ Non-technical founders, small business owners, and operators running real compan
 Would a stressed-out non-technical founder, reading this at 11pm on their phone, feel this was written FOR them or AT them? If FOR them, keep going. If AT them, restart.
 `;
 
-export const IMAGE_STYLE_ANCHOR = `Soft-focus editorial still life composition in a painterly, slightly impressionistic rendering style, clearly not a photograph but evocative of one. Objects arranged on a pale linen surface (#F7F4F2). Soft directional window light from the upper left, casting long gentle shadows. Shallow depth of field with the background dissolving into a warm creamy blur. Color palette strictly restricted to: deep muted teal (#365367), sage green (#577267), blush pink (#ECD8DC), pale blue (#D4E4F1), warm linen white (#F7F4F2), and natural brass/gold. Premium editorial magazine aesthetic. Matte surfaces, no gloss. Generous negative space. Horizontal composition. No text, no screens, no devices, no human figures.`;
+// Image style anchor for article hero images. This prompt was redesigned
+// after a pattern emerged where every generated image defaulted to standing
+// color-coded rectangular panels in the background — the model was
+// interpreting hex codes and "color palette" framing as an instruction to
+// display the brand colors as swatches.
+//
+// Key changes from the previous version (see git history for the old one):
+//   - No hex codes. Colors appear only as material properties of real
+//     objects (glazed ceramic, fig skin, brass patina), never as "palette."
+//   - Background is explicitly specified with four options instead of left
+//     blank. A blank background invites the model to fill it with panels.
+//   - Explicit DO NOT RENDER block at the end naming the exact failure mode.
+//   - Framed as "a moment someone just stepped away from" rather than an
+//     "arrangement" or "still life composition."
+export const IMAGE_STYLE_ANCHOR = `Editorial still-life photography in a soft, painterly rendering — evocative of a photograph but clearly hand-rendered, with gentle brushwork visible in shadows and edges. The scene is a quiet moment on a writer's linen-covered desk or side table, captured as if the person has just stepped away. Horizontal composition.
+
+SURFACE: A length of unbleached, slightly wrinkled linen in warm ivory (softly natural, never pure white). Visible weave texture, casual folds — not pressed flat, not styled.
+
+BACKGROUND: The scene sits in front of ONE continuous atmospheric field. Choose a single background treatment from: (a) a lime-washed plaster wall in soft warm cream with faint mottled variation and subtle shadow play; (b) a sheer linen curtain backlit by a window, diffusing light into a pale warm haze; (c) the creamy out-of-focus depth of an interior room falling into shallow blur, suggesting furniture and warmth without detail; (d) soft afternoon light washing across a bare warm-plaster wall. The background must read as a single field of depth and atmosphere — never as panels, zones, or multiple vertical forms. No objects stand upright behind the hero objects. No rows of anything.
+
+LIGHT: Soft directional daylight from the upper left, as if through a linen-veiled window in late afternoon. Long, gentle, diffused shadows falling to the lower right. Warm highlights against cool shadows. No harsh edges. Slight atmospheric haze where background meets light.
+
+COLOR AS MATERIAL: Colors appear exclusively as properties of real objects and surfaces — never as separate panels, blocks, or swatches. Deep muted teal appears only as glazed ceramic, a bound cloth cover, the dark of a folded wool throw, or deep shadow in fabric. Sage green appears as a living plant, olive or rosemary sprig, or weathered brass patina. Blush pink appears as the skin of a ripe fig or peach, a silk ribbon, a faded petal, or a wash of warm light on plaster. Pale blue appears as sky glimpsed through a window, a glass vessel catching light, or a watercolor wash on a paper edge. Warm ivory is the linen surface itself. Aged brass appears as a small metal object — a key, pen nib, lamp base, clock face. These colors are accents distributed naturally across objects and light — never lined up, never equal in weight, never displayed as a set.
+
+RENDERING: Oil-paint or gouache aesthetic — matte, unvarnished, with soft brushwork visible in color transitions and edges. No photographic sharpness. No digital gloss. Slightly desaturated. Premium magazine editorial feel in the vein of Kinfolk, Cereal, or Cabana art direction.
+
+COMPOSITION: Objects placed as if used and set down — asymmetric, casual, lived-in. Never symmetrical, never lined up, never centered. Generous negative space on at least one side of the frame. Shallow depth of field with the background softly dissolved. One clear hero object with two or three supporting objects at most.
+
+DO NOT RENDER: Standing color-coded rectangular panels. Upright blocks, pillars, or columns behind or beside the objects. Book spines arranged like a shelf. Color swatches, paint chips, bookends, or any row of geometric forms. A background divided into color zones. Multiple rectangular shapes stacked or lined up anywhere in the frame. Do not present this image as a brand palette, color-theory display, moodboard, or design-system illustration. Do not solve the composition by giving each brand color its own shape. The scene is a lived human moment, not a chart. No text, no screens, no devices, no human figures.`;
 
 // Research sources organized into three buckets: priority model labs (ALWAYS
 // checked each scan), audience sources (where the ICP hangs out), and signal
