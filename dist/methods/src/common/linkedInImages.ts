@@ -58,8 +58,15 @@ const BRAND = {
 };
 
 // Fonts — loaded inline via Fontshare per the brand spec.
-// Bespoke Serif for quote/number (the visual punch), Satoshi for supporting text.
-const FONT_IMPORTS = `@import url('https://api.fontshare.com/v2/css?f[]=bespoke-serif@500,700&family=satoshi@500,600&display=swap');`;
+// Bespoke Serif for quote/number (the visual punch), Satoshi for supporting
+// text. Italic variants (500i, 600i) are loaded so the ".ai" in the
+// SystemStudio.ai brand mark can render in italic matching the website logo.
+const FONT_IMPORTS = `@import url('https://api.fontshare.com/v2/css?f[]=bespoke-serif@500,700&family=satoshi@500,500i,600,600i&display=swap');`;
+
+// SystemStudio.ai brand mark HTML. Renders as "SystemStudio.ai" with the
+// ".ai" in italic, matching the treatment on systemstudio.ai itself. Used
+// in the footer of every card.
+const BRAND_MARK_HTML = `SystemStudio<span class="brand-italic">.ai</span>`;
 
 // Quote Card template. Per the guidelines: "let the words carry the visual,
 // no busy imagery". Brand-warm Linen background, Deep Current quote in serif,
@@ -125,14 +132,20 @@ body {
   color: ${BRAND.sageStone};
   letter-spacing: 0.02em;
 }
+/* Brand mark — matches the systemstudio.ai website treatment:
+   upright "SystemStudio" + italic ".ai" at the same weight. Kept
+   subtle so it reads as a signature, not a dominant element. */
 .brand {
   font-family: 'Satoshi', sans-serif;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 500;
   color: ${BRAND.deepCurrent};
-  opacity: 0.4;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  opacity: 0.55;
+  letter-spacing: 0;
+}
+.brand-italic {
+  font-style: italic;
+  font-weight: 500;
 }
 </style>
 </head>
@@ -141,7 +154,7 @@ body {
   <p class="quote">{{quoteText}}</p>
   <div class="footer">
     <span class="handle">{{handle}}</span>
-    <span class="brand">SystemStudio</span>
+    <span class="brand">${BRAND_MARK_HTML}</span>
   </div>
 </body>
 </html>`;
@@ -219,14 +232,20 @@ body {
   color: ${BRAND.sageStone};
   letter-spacing: 0.02em;
 }
+/* Brand mark — matches the systemstudio.ai website: upright
+   "SystemStudio" + italic ".ai" at the same weight. Kept subtle
+   so it reads as a signature, not a dominant element. */
 .brand {
   font-family: 'Satoshi', sans-serif;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 500;
   color: ${BRAND.deepCurrent};
-  opacity: 0.4;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  opacity: 0.55;
+  letter-spacing: 0;
+}
+.brand-italic {
+  font-style: italic;
+  font-weight: 500;
 }
 </style>
 </head>
@@ -236,7 +255,7 @@ body {
   <div class="label">{{label}}</div>
   <div class="footer">
     <span class="handle">{{handle}}</span>
-    <span class="brand">SystemStudio</span>
+    <span class="brand">${BRAND_MARK_HTML}</span>
   </div>
 </body>
 </html>`;
