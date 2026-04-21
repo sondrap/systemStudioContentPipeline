@@ -36,8 +36,10 @@
       "name": "Reach Multiplier",
       "narrative": "One research pass, every format and platform it needs to land on — from LinkedIn posts to newsletter editions to a fully-owned public blog.",
       "items": [
-        "linkedin-cross-post.md",
+        "linkedin-tone-tagging.md",
+        "linkedin-post-critique.md",
         "linkedin-revise-with-notes.md",
+        "linkedin-cross-post.md",
         "multi-format-studio.md",
         "built-in-newsletter.md",
         "canonical-blog.md"

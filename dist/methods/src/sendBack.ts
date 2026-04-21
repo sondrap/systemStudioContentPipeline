@@ -5,6 +5,7 @@ import { reviewSeoCritique } from './common/seoCritique';
 import { reviewDraftCritique } from './common/draftCritique';
 import { normalizeSignoff } from './common/signoff';
 import { stripPaywalledLinks } from './common/paywall';
+import { applyCritiqueFeedback, hasActionableIssues } from './common/applyCritiqueFeedback';
 
 export async function sendBack(input: { id: string; revisionNotes: string }) {
   auth.requireRole('admin');
@@ -102,8 +103,8 @@ Output ONLY the revised article body in markdown. No preamble, no explanation.`,
   }
   const wordCount = normalizedContent.split(/\s+/).filter(Boolean).length;
 
-  // Save the rewritten body and clear revision notes first so the user sees
-  // results quickly. Then kick off a fresh SEO critique against the new draft.
+  // Save the rewritten body quickly so the user can see progress, then
+  // kick off the critique + auto-revise loop.
   await Articles.update(articleId, {
     body: normalizedContent,
     wordCount,
@@ -113,35 +114,142 @@ Output ONLY the revised article body in markdown. No preamble, no explanation.`,
 
   console.log(`[${articleId}] Rewrite complete (${wordCount} words). Running critiques...`);
 
+  // Work with a local copy we'll revise through the auto-loop.
+  let currentTitle = article.title;
+  let currentExcerpt = article.excerpt || '';
+  let currentBody = normalizedContent;
+  let currentOgDescription = article.ogDescription || article.metaDescription || '';
+  const focusKeyword = article.focusKeyword || '';
+
   // Run fresh SEO and draft critiques in parallel on the revised article.
-  // They're independent, so doing them together saves the user ~20 seconds.
-  const [seoResult, draftResult] = await Promise.all([
+  const [seoResultInitial, draftResultInitial] = await Promise.all([
     reviewSeoCritique({
-      title: article.title,
-      body: normalizedContent,
-      excerpt: article.excerpt || '',
-      focusKeyword: article.focusKeyword || '',
-      metaDescription: article.ogDescription || article.metaDescription || '',
+      title: currentTitle,
+      body: currentBody,
+      excerpt: currentExcerpt,
+      focusKeyword,
+      metaDescription: currentOgDescription,
       competitorInsights: article.researchBrief?.competitorInsights,
     }).catch(err => {
       console.error(`[${articleId}] SEO critique refresh failed:`, err);
       return null;
     }),
     reviewDraftCritique({
-      title: article.title,
-      body: normalizedContent,
-      excerpt: article.excerpt || '',
+      title: currentTitle,
+      body: currentBody,
+      excerpt: currentExcerpt,
     }).catch(err => {
       console.error(`[${articleId}] Draft critique refresh failed:`, err);
       return null;
     }),
   ]);
 
-  const critiqueUpdates: any = {};
+  // AUTO-REVISE LOOP — same pattern as startArticle. After a Send Back
+  // rewrite, the critiques run and any critical/should-fix issues get
+  // reconciled automatically so Sondra doesn't have to do the mechanical
+  // compliance work by hand.
+  const MAX_REVISION_ITERATIONS = 2;
+  let seoResult = seoResultInitial;
+  let draftResult = draftResultInitial;
+  const skippedIssuesAccumulated: Array<{ area: string; issue: string }> = [];
+  let iterationsRun = 0;
+
+  for (let i = 0; i < MAX_REVISION_ITERATIONS; i++) {
+    const bundle = {
+      seo: seoResult || undefined,
+      draft: draftResult || undefined,
+    };
+
+    if (!hasActionableIssues(bundle)) {
+      console.log(`[${articleId}] Auto-revise: no actionable issues remaining after ${i} iteration(s).`);
+      break;
+    }
+
+    console.log(`[${articleId}] Auto-revise iteration ${i + 1}/${MAX_REVISION_ITERATIONS}: applying critique feedback...`);
+
+    try {
+      const revised = await applyCritiqueFeedback({
+        title: currentTitle,
+        excerpt: currentExcerpt,
+        body: currentBody,
+        ogDescription: currentOgDescription,
+        focusKeyword: focusKeyword || undefined,
+        critiques: bundle,
+        alreadySkipped: skippedIssuesAccumulated,
+      });
+
+      if (!revised.anyChanges) {
+        console.log(`[${articleId}] Auto-revise iteration ${i + 1}: reconciliation declined all remaining issues (voice lock). Stopping loop.`);
+        for (const s of revised.skippedIssues) {
+          skippedIssuesAccumulated.push({ area: s.area, issue: s.issue });
+        }
+        break;
+      }
+
+      currentTitle = revised.title;
+      currentExcerpt = revised.excerpt;
+      currentBody = normalizeSignoff(revised.body);
+      currentBody = stripPaywalledLinks(currentBody).body;
+      currentOgDescription = revised.ogDescription;
+      iterationsRun = i + 1;
+
+      for (const s of revised.skippedIssues) {
+        skippedIssuesAccumulated.push({ area: s.area, issue: s.issue });
+      }
+
+      // Re-critique the revised article for the next iteration
+      const [newSeo, newDraft] = await Promise.all([
+        reviewSeoCritique({
+          title: currentTitle,
+          body: currentBody,
+          excerpt: currentExcerpt,
+          focusKeyword,
+          metaDescription: currentOgDescription,
+          competitorInsights: article.researchBrief?.competitorInsights,
+        }).catch(err => {
+          console.error(`[${articleId}] Auto-revise SEO re-critique failed:`, err);
+          return seoResult;
+        }),
+        reviewDraftCritique({
+          title: currentTitle,
+          body: currentBody,
+          excerpt: currentExcerpt,
+        }).catch(err => {
+          console.error(`[${articleId}] Auto-revise Draft re-critique failed:`, err);
+          return draftResult;
+        }),
+      ]);
+
+      seoResult = newSeo;
+      draftResult = newDraft;
+
+      console.log(`[${articleId}] Auto-revise iteration ${i + 1} complete.`);
+    } catch (err) {
+      console.error(`[${articleId}] Auto-revise iteration ${i + 1} failed, stopping loop:`, err);
+      break;
+    }
+  }
+
+  // Save the final revised article content + critiques
+  const finalWordCount = currentBody.split(/\s+/).filter(Boolean).length;
+  const critiqueUpdates: any = {
+    title: currentTitle,
+    excerpt: currentExcerpt,
+    body: currentBody,
+    ogDescription: currentOgDescription,
+    metaDescription: currentOgDescription,
+    wordCount: finalWordCount,
+  };
   if (seoResult) critiqueUpdates.seoCritique = seoResult;
   if (draftResult) critiqueUpdates.draftCritique = draftResult;
-  if (Object.keys(critiqueUpdates).length > 0) {
-    await Articles.update(articleId, critiqueUpdates);
+
+  if (iterationsRun > 0) {
+    console.log(`[${articleId}] Auto-revise complete: ${iterationsRun} iteration(s) ran, ${skippedIssuesAccumulated.length} issues preserved for voice.`);
+  }
+
+  await Articles.update(articleId, critiqueUpdates);
+
+  {
     console.log(`[${articleId}] Critiques refreshed. SEO: ${seoResult?.issues.length ?? 'failed'}. Draft: ${draftResult?.issues.length ?? 'failed'}.`);
   }
 }

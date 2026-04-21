@@ -1,0 +1,287 @@
+So, in the previous video, I showed you
+how a Mind Studio AI workflow can help
+automate the posting of LinkedIn content
+so that you can save hours and
+consistently build up a marketing
+presence online. If you haven't seen
+that video, I would highly recommend you
+go and watch it first as we will be
+making several references to that video
+in this build today. To create a new AI
+workflow in M Studio using the agent
+builder, what you need to do is go over
+to the bottom left corner. Select
+generate agent. It will now bring you
+into a chat window where you can prompt
+it and tell it what you want it to do.
+So let's go ahead and start building.
+Now I have prepared the prompt ahead of
+time and I'm going to put it in section
+by section whilst going through them
+with you. Now, first and foremost, the
+most important thing that you have to
+specify or tell this agent is to tell it
+what you want it to do. So, I want an AI
+agent that creates LinkedIn post. I am
+then going to give it a series of steps
+as a guidance as to how I want the
+workflow to be carried out. So, over
+here, I'm going to post some guidance.
+Um, it all starts with an intake form,
+which is um the brief that we went
+through. Um and then a series of steps
+that AI has to that the system has to
+follow and I also mentioned that um
+there is an approval workflow that's
+needed in the process. If it's approved
+then it postes it directly to LinkedIn
+and if it's not then the user is able to
+refine the post. So that is the rough
+guidance as to how I want the structure
+to to follow or the steps that I want it
+to follow. Um, and then I'm going to add
+some rules um almost towards the end um
+saying to make sure that the text of the
+post is formatted correctly because what
+I found um on my previous tries is that
+if I didn't specify that um the text
+that will show up in the final LinkedIn
+post would not be formatted correctly
+and the spacings just wouldn't be
+reflected in the post. So I made sure to
+include that as well um so that the AI
+accounts for it um when building the
+system out. Now at the very end I'm
+going to give it some more context um
+which will guide the system prompt in in
+in general. Um this is more information
+about what we do as a company and it's
+very crucial to provide this in this
+context um because it will then allow
+the AI to generate a post that is
+representative of um the offerings that
+we offer and also the things that we
+specialize in. Right? So I'm going to
+hit send. And now what AI is going to do
+is that it's ingesting all of this
+message in there. Um it's going to think
+whether or not there are any ambiguity.
+Um and if there are, it's going to ask
+for clarification. Um but if there
+aren't any ambiguities, then it will go
+ahead and create a uh draft spec for
+review. So as you can see, it's come up
+with a few logic there earlier, but it
+didn't particularly flag anything um
+that required further clarification. So
+it has skipped that step completely and
+it's now on to um specking the draft of
+the system itself. So let's give it a
+moment to spec the system.
+Okay. Okay, so it just spent the last
+couple minutes generating u a proposal
+for this agent and it's gone ahead to
+ask us to review the proposal so that we
+make sure everything is in order um
+before giving it the green light to to
+build the entire system. Um so at the
+very start of the proposal um it has a
+short description of what it does. Um
+and it has also said what it will
+include in the system prompt and over
+here um which is the most detailed part
+of the proposal is the suggested
+workflow. So it tells us exactly how
+it's going to build it from step one all
+the way to the very end. Right. Um, and
+it's also included the variables over
+here for our reference. And now that we
+have glanced through this, we are going
+to give it the green light to build it.
+Of course, with this window over here,
+similar to when we were giving feedback
+on the LinkedIn post, we can also um
+provide um input or feedback in terms of
+refining this um draft proposal. So, we
+are free to type whatever over here um
+if we see anything that requires
+changes. But in this particular case,
+we're happy with it and we're just going
+to go ahead and build it. So I'm going
+to click build. And now the agent goes
+ahead and build the entire system based
+on the review draft that we have just
+saw earlier. It's going to take a few
+minutes again. So I'm going to fast
+forward this bit as well.
+In just three minutes um it was able to
+create the entire system without any
+errors. So let's go ahead and open the
+agent to inspect the work that it has
+done.
+Although the system did not run into any
+error when it created this workflow over
+here. Just at first glance I can see uh
+an issue with this workflow already. Um
+as you can see the flow follows um the
+same path as the workflow that I've
+presented to you earlier but there is
+these two additional modules over here
+which are a bit redundant. Um if we go
+into it um you can see that it brings
+the jump module essentially brings you
+into um a subworkflow within this main
+workflow and you can see it's not really
+mapped correctly. It says it's invalid
+workflow but there is main one.workflow
+which represents this subworkflow over
+here. And if we go inside, there is
+actually nothing configured within it.
+So this is likely an error um or mistake
+that the agent had come up with whilst
+building this. Um so we're going to go
+ahead and fix this. So very simple,
+we're just going to delete these two
+redundant modules. Yes. And delete. Yes.
+And we're going to connect these up
+directly. So we have the generate image
+module. And then if you remember we
+generated a preview based on the image
+and the post. Um and then it goes
+through an approval gate over here. Um
+and then upon accepting it it goes
+straight to LinkedIn. Um but if on
+rejection um it calls out this
+checkpoint where if you remember there
+was this window where we were able to
+message um the system itself to refine
+the final post. So now the last thing we
+need to do really is just map um the
+flow upon approval. So you can see here
+um this module over here allows us to
+chat with AI to refine the LinkedIn
+post. Um and on approval of that we want
+the refined post to be regenerated in
+the preview for us to review and if
+everything looks good then it goes
+through the approval gate and we approve
+it and then it goes back to the LinkedIn
+um which will then automatically post
+the final version on LinkedIn. Now as
+you can see I think this is a brilliant
+demonstration on how AI is not perfect
+at the end of the day. It's based on
+predictive models which means that the
+output that you get um is not always
+certain but what is certain about this
+is that it's able to create a system
+that is 95% there and all it took is for
+us to look at the whole system make a
+few tweaks and changes and then it is
+working as intended. Now let's test that
+this system is indeed performing as
+intended. Uh by doing that we are going
+to open the draft agent. We're going to
+blitz through the entire process just to
+have a sanity check that the system is
+indeed working correctly. I'm going to
+use the test values for this
+questionnaire. Going to hit submit and
+hopefully the system should ask me a
+series of follow-up questions like
+before. Um the number of questions that
+it may ask will may be different from
+before because the settings could have
+been changed.
+So now it's generating the post based on
+our inputs. It's generating an image
+prompt that reflects the post and then
+it's going to generate an image um from
+by using the prompt that it's just
+generated. Now up to this point uh as
+you can see the steps are almost
+identical as before bar a few minor
+differences in how the brief intake form
+um was um formatted. So at this point it
+is generating a preview for us to see
+the post the draft post uh and the image
+for us to review and this exactly the
+same as before.
+Now we can see the rendered preview over
+here and whilst there are subtle changes
+in perhaps the font or the color of the
+preview itself compared to the first
+model in which I demoed the
+functionality of it remains largely the
+same. Um, it starts with an image uh
+that has been generated by the post and
+also um the draft text for us to review.
+So, I'm going to click continue.
+And we also arrive at this checkpoint
+like before. We could either refine it
+or we can approve and publish it. I'm
+going to refine it and see where that
+takes me. Right now, I'm being brought
+into this window over here. um exactly
+the same as before where we have the
+option to type our feedback in order to
+refine this post further. Um but for the
+purpose of this demonstration, I am not
+going to do that. I'm just going to run
+through with the workflow. Um continue.
+And I am now going to approve and
+publish the post.
+Interestingly, we're now met with a new
+agent checkpoint which wasn't here
+before. um we are being prompted to
+review the final post, select an account
+and give it the final green light before
+it gets published on LinkedIn. Now this
+is a perfect um example to highlight the
+quirk of AI itself because AI is
+unpredictable in nature and it runs on
+probability. You can see that we gave
+the agent or in the agent builder the
+exact same prompts to build this system
+out. But how it arrived at the final
+solution varies from builds to build.
+But I just want to mention that although
+the steps that it might have taken to
+arrive at the end goal um would have
+been different but the results or the
+end goal would stay largely the same. So
+I'm going to hit approve.
+And now we're going to go back to
+LinkedIn to check the post that has been
+created.
+As you can see now, the post came
+through nicely um through LinkedIn and
+you can see the formatting is perfect.
+The hashtags are coming through and the
+image is posted over here as well. Um so
+yeah, exactly the same end results. The
+system that I've just demonstrated was
+executed entirely on Mind Studio with
+integrations to LinkedIn for posting.
+There are also a wide range of other
+apps you can link this AI workflow to
+and one good example for that to enhance
+the overall process is Smart Sheet.
+Smart Sheet is a work management tool
+that allow teams to collaborate
+effectively. A key feature relevant to
+our example today is the built-in
+approval workflow. Now in this context
+you can link this AI system to Smart
+Sheet so that a manager can be looped in
+in the final approval process before it
+gets published onto LinkedIn. Start
+building your AI workflows now using
+Mind Studio. You can use our referral
+code linked below. My name is Elvin from
+Blue Position Technologies. We are an AI
+expert and also a solution partner of
+Mind Studio. If you need help adopting
+AI at scale for your business, feel free
+to contact us. Thank you for watching
+and I'll catch you in the next one. Bye.

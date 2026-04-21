@@ -6,6 +6,7 @@ import { pickImageConcept, renderStillLife, ImageConcept } from './common/genera
 import { reviewSeoCritique } from './common/seoCritique';
 import { reviewDraftCritique } from './common/draftCritique';
 import { generateAllLinkedInPosts } from './common/linkedInPosts';
+import { applyCritiqueFeedback, hasActionableIssues } from './common/applyCritiqueFeedback';
 import { normalizeSignoff } from './common/signoff';
 import { stripPaywalledLinks } from './common/paywall';
 import { analyzeKeywordPlacement, fixUpMissingKeywordPlacements } from './common/verifyKeywordPlacement';
@@ -551,12 +552,13 @@ This is the HERO image for the article. It should represent the article's overal
 
   console.log(`[${articleId}] Hero concept:`, heroConcept.objects.map(o => `${o.name}`).join(', '));
 
-  // Step 3: In parallel, generate all three images, run BOTH adversarial
-  // reviewers (SEO critique + Draft critique), AND generate the LinkedIn
-  // post variants. Images, critiques, and LinkedIn posts are independent so
-  // running concurrently saves significant time on the critical path. Each
-  // call independently handles errors so one failure doesn't kill the others.
-  const [heroUrl, bodyUrl1, bodyUrl2, seoCritiqueResult, draftCritiqueResult, linkedInPostsResult] = await Promise.all([
+  // Step 3: In parallel, generate the hero image + body images AND run both
+  // adversarial reviewers (SEO critique + Draft critique). LinkedIn posts
+  // are DELIBERATELY NOT in this parallel phase — they run later so they
+  // can be built from the post-auto-revise body, not the pre-revise draft.
+  // Each call independently handles errors so one failure doesn't kill the
+  // others.
+  const [heroUrl, bodyUrl1, bodyUrl2, seoCritiqueResultInitial, draftCritiqueResultInitial] = await Promise.all([
     renderStillLife(heroConcept).catch(err => {
       console.error(`[${articleId}] Hero image render failed:`, err);
       return null;
@@ -592,17 +594,139 @@ This is the HERO image for the article. It should represent the article's overal
       console.error(`[${articleId}] Draft critique failed:`, err);
       return null;
     }),
-    generateAllLinkedInPosts({
+  ]);
+  const bodyUrls = [bodyUrl1, bodyUrl2].slice(0, breakPoints.length);
+
+  // Step 3.5: AUTO-REVISE LOOP. If the critiques flagged any critical or
+  // should-fix issues, run the reconciliation agent to apply the fixes
+  // automatically. Then re-critique and loop — up to MAX_REVISION_ITERATIONS
+  // times OR until there are no more actionable issues to address, whichever
+  // comes first.
+  //
+  // Goal: Sondra opens the article and sees mostly-green critiques, spending
+  // her editing time on voice judgment rather than mechanical compliance.
+  //
+  // Design decisions:
+  // - Cap at 2 iterations. If 2 rounds can't clear the critiques, the
+  //   remaining issues probably need human judgment — land the article
+  //   in review with what we have.
+  // - Break early if the critique comes back with no actionable issues —
+  //   don't waste tokens running a second iteration on a clean article.
+  // - Track skipped issues across iterations so the model doesn't burn
+  //   tokens re-attempting fixes it already declined on voice grounds.
+  // - Re-run BOTH critiques after each revision since an SEO fix can
+  //   affect the Draft critique and vice versa.
+  const MAX_REVISION_ITERATIONS = 2;
+  let seoCritiqueResult = seoCritiqueResultInitial;
+  let draftCritiqueResult = draftCritiqueResultInitial;
+  const skippedIssuesAccumulated: Array<{ area: string; issue: string }> = [];
+  let iterationsRun = 0;
+
+  for (let i = 0; i < MAX_REVISION_ITERATIONS; i++) {
+    const bundle = {
+      seo: seoCritiqueResult || undefined,
+      draft: draftCritiqueResult || undefined,
+    };
+
+    if (!hasActionableIssues(bundle)) {
+      console.log(`[${articleId}] Auto-revise: no actionable issues remaining after ${i} iteration(s).`);
+      break;
+    }
+
+    console.log(`[${articleId}] Auto-revise iteration ${i + 1}/${MAX_REVISION_ITERATIONS}: applying critique feedback...`);
+
+    try {
+      const revised = await applyCritiqueFeedback({
+        title: seoTitle,
+        excerpt: seoExcerpt,
+        body: seoBody,
+        ogDescription: seoOgDescription,
+        focusKeyword,
+        critiques: bundle,
+        alreadySkipped: skippedIssuesAccumulated,
+      });
+
+      // If the reconciliation agent chose not to change anything, there's
+      // no point running another critique pass — we'll get the same result.
+      if (!revised.anyChanges) {
+        console.log(`[${articleId}] Auto-revise iteration ${i + 1}: reconciliation declined all remaining issues (voice lock). Stopping loop.`);
+        // Capture the skip reasons for the final state
+        for (const s of revised.skippedIssues) {
+          skippedIssuesAccumulated.push({ area: s.area, issue: s.issue });
+        }
+        break;
+      }
+
+      // Apply the revised content
+      seoTitle = revised.title;
+      seoExcerpt = revised.excerpt;
+      seoBody = revised.body;
+      seoOgDescription = revised.ogDescription;
+      iterationsRun = i + 1;
+
+      // Accumulate the skipped issues so the next iteration knows not to
+      // re-attempt them
+      for (const s of revised.skippedIssues) {
+        skippedIssuesAccumulated.push({ area: s.area, issue: s.issue });
+      }
+
+      // Re-normalize the sign-off and strip any paywalls the reconciliation
+      // accidentally let through (belt-and-suspenders)
+      seoBody = normalizeSignoff(seoBody);
+      seoBody = stripPaywalledLinks(seoBody).body;
+
+      // Re-critique the revised article for the next iteration's decision
+      const [newSeo, newDraft] = await Promise.all([
+        reviewSeoCritique({
+          title: seoTitle,
+          body: seoBody,
+          excerpt: seoExcerpt,
+          focusKeyword,
+          metaDescription: seoOgDescription,
+          competitorInsights: researchResult.output.competitorInsights,
+        }).catch(err => {
+          console.error(`[${articleId}] Auto-revise SEO re-critique failed:`, err);
+          return seoCritiqueResult;  // fall back to prior critique
+        }),
+        reviewDraftCritique({
+          title: seoTitle,
+          body: seoBody,
+          excerpt: seoExcerpt,
+        }).catch(err => {
+          console.error(`[${articleId}] Auto-revise Draft re-critique failed:`, err);
+          return draftCritiqueResult;
+        }),
+      ]);
+
+      seoCritiqueResult = newSeo;
+      draftCritiqueResult = newDraft;
+
+      console.log(`[${articleId}] Auto-revise iteration ${i + 1} complete. SEO issues: ${newSeo?.issues.length || 0}, Draft issues: ${newDraft?.issues.length || 0}`);
+    } catch (err) {
+      console.error(`[${articleId}] Auto-revise iteration ${i + 1} failed, stopping loop:`, err);
+      break;
+    }
+  }
+
+  if (iterationsRun > 0) {
+    console.log(`[${articleId}] Auto-revise complete: ${iterationsRun} iteration(s) ran, ${skippedIssuesAccumulated.length} issues explicitly preserved for voice.`);
+  }
+
+  // Step 3.6: Generate LinkedIn posts NOW, from the final revised body.
+  // Moved after the auto-revise loop so the LinkedIn variants reflect the
+  // article that ships to the reader, not the pre-revise draft.
+  let linkedInPostsResult: any[] = [];
+  try {
+    linkedInPostsResult = await generateAllLinkedInPosts({
       articleTitle: seoTitle,
       articleBody: seoBody,
       articleExcerpt: seoExcerpt,
       focusKeyword,
-    }).catch(err => {
-      console.error(`[${articleId}] LinkedIn post generation failed:`, err);
-      return [];
-    }),
-  ]);
-  const bodyUrls = [bodyUrl1, bodyUrl2].slice(0, breakPoints.length);
+    });
+  } catch (err) {
+    console.error(`[${articleId}] LinkedIn post generation failed:`, err);
+    linkedInPostsResult = [];
+  }
 
   // Step 4: Insert body images into the article markdown. We walk the body line
   // by line, and when we find a line that matches one of our target headings,
