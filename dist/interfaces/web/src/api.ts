@@ -125,7 +125,19 @@ export const api = createClient<{
     customLabel?: string;
     direction?: string;
   }): Promise<{ article: Article; image: { imageUrl: string; imageType: 'quote' | 'stat'; text: string; number?: string; label?: string } }>;
-  resumeArticle(input: { id: string }): Promise<{ article: Article; recovered: { heroImage: boolean; seoCritique: boolean; draftCritique: boolean; linkedInPosts: number } }>;
+  resumeArticle(input: { id: string }): Promise<{
+    article: Article;
+    // Two recovery shapes depending on which path the resume took:
+    // - Post-drafting recovery: { heroImage, seoCritique, draftCritique, linkedInPosts }
+    // - Full restart (body was missing): { restarted: true }
+    recovered: {
+      heroImage?: boolean;
+      seoCritique?: boolean;
+      draftCritique?: boolean;
+      linkedInPosts?: number;
+      restarted?: boolean;
+    };
+  }>;
   captureQuickTopic(input: { rawInput: string }): Promise<{ topic: Topic }>;
   importPublishedArticles(): Promise<{ totalOnSite: number; imported: number; skipped: number; failed: number; details: any }>;
   searchWeb(input: { query: string }): Promise<{ results: any[] }>;

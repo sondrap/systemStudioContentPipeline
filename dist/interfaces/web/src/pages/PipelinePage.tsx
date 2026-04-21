@@ -45,6 +45,7 @@ function ArticleCard({ article }: { article: Article }) {
   const [, navigate] = useLocation();
   const removeArticle = useStore((s) => s.removeArticle);
   const updateArticleLocal = useStore((s) => s.updateArticleLocal);
+  const loadData = useStore((s) => s.loadData);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -53,8 +54,10 @@ function ArticleCard({ article }: { article: Article }) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const stuck = isArticleStuck(article);
-  // Only 'drafting' is resumable — 'researching' means there's no body yet.
-  const canResume = stuck && article.status === 'drafting';
+  // Resume now handles both 'drafting' (body exists, just finish the rest)
+  // AND 'researching' / 'drafting-with-empty-body' (restart from the topic).
+  // So canResume is true for any stuck article that has a topic to recover from.
+  const canResume = stuck && (article.status === 'drafting' || article.status === 'researching');
 
   const handleResume = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -62,7 +65,15 @@ function ArticleCard({ article }: { article: Article }) {
     setResumeError(null);
     try {
       const result = await api.resumeArticle({ id: article.id });
-      if (result.article) {
+      // If the resume took the "restart from scratch" path, the returned
+      // article is a BRAND NEW record with a different ID. Reload the full
+      // dashboard so the old dead article is gone and the new one appears
+      // at whatever status it's in (probably 'researching').
+      if (result.recovered?.restarted) {
+        await loadData();
+      } else if (result.article) {
+        // Post-drafting recovery path: same article ID, just merge the
+        // new fields.
         updateArticleLocal(article.id, {
           status: result.article.status,
           imageUrl: result.article.imageUrl,
@@ -244,9 +255,11 @@ function ArticleCard({ article }: { article: Article }) {
                 Stuck for {formatStuckDuration(article.updated_at)}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4, marginTop: 2 }}>
-                {canResume
-                  ? 'Background pipeline was interrupted. Resume to finish generating images, critiques, and LinkedIn posts.'
-                  : 'Stuck in research with no body yet. Delete and re-start to recover.'}
+                {!canResume
+                  ? 'Background pipeline was interrupted and this article has no topic to recover from. Delete and re-start from the Backlog.'
+                  : article.status === 'researching' || !article.wordCount
+                    ? 'Pipeline died during research or drafting. Resume will restart from the topic (takes ~3 minutes).'
+                    : 'Background pipeline was interrupted. Resume to finish generating images, critiques, and LinkedIn posts.'}
               </div>
             </div>
           </div>
@@ -273,8 +286,10 @@ function ArticleCard({ article }: { article: Article }) {
               }}
             >
               {resuming
-                ? <><IconLoader2 size={12} className="spinner" /> Resuming... (~1-2m)</>
-                : <><IconPlayerPlay size={12} stroke={2} /> Resume pipeline</>}
+                ? <><IconLoader2 size={12} className="spinner" /> Resuming...</>
+                : <><IconPlayerPlay size={12} stroke={2} />
+                    {article.status === 'researching' || !article.wordCount ? 'Restart pipeline' : 'Resume pipeline'}
+                  </>}
             </button>
           )}
 
