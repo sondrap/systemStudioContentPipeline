@@ -65,11 +65,12 @@ function ArticleCard({ article }: { article: Article }) {
     setResumeError(null);
     try {
       const result = await api.resumeArticle({ id: article.id });
-      // If the resume took the "restart from scratch" path, the returned
-      // article is a BRAND NEW record with a different ID. Reload the full
-      // dashboard so the old dead article is gone and the new one appears
-      // at whatever status it's in (probably 'researching').
-      if (result.recovered?.restarted) {
+      // If the resume took the "restart from scratch" path OR the server
+      // said the article is already completed (user clicked Restart twice,
+      // first one succeeded, UI still shows stale state), reload the full
+      // dashboard so the stale card disappears and the current state is
+      // reflected.
+      if (result.recovered?.restarted || (result.recovered as any)?.alreadyCompleted) {
         await loadData();
       } else if (result.article) {
         // Post-drafting recovery path: same article ID, just merge the

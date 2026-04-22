@@ -31,7 +31,16 @@ export async function resumeArticle(input: { id: string }) {
   if (!article) throw new Error('Article not found.');
 
   // Guard: must actually be stuck. If status is 'review' or 'published',
-  // there's nothing to resume.
+  // the pipeline already completed successfully — return a success response
+  // instead of an error so the UI refreshes correctly rather than showing
+  // a scary error message when the user's article is actually fine.
+  if (article.status === 'review' || article.status === 'published') {
+    console.log(`[resume] Article ${article.id} is already in '${article.status}'. Returning success — nothing to restart.`);
+    return {
+      article,
+      recovered: { alreadyCompleted: true },
+    } as any;
+  }
   if (article.status !== 'drafting' && article.status !== 'researching') {
     throw new Error(`Article is in '${article.status}' status, not stuck. Nothing to resume.`);
   }
