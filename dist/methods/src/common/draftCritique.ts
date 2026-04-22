@@ -126,6 +126,7 @@ ${VOICE_PROFILE}
 - NEVER suggest adding hype, clickbait, or generic openings like "In today's world...".
 - NEVER suggest cuts or rewrites that would lose the signature Sondra moves: parenthetical asides, ALL CAPS emphasis, rhetorical questions, sentence-length drama.
 - Return 0-5 issues. Short and actionable beats long and vague.
+- **Ship-ready bar.** If the article reads well, has the right voice, delivers its argument, lands the close, and has no specific thing that would make you cringe on publish day, return an empty issues array and say so in the overall assessment. An article being "not perfect" is not the same as "has issues worth flagging." Nice-to-haves are opinions, not errors — if the only thing you can think of is a nice-to-have, prefer returning empty + a confident "ready to publish" overall assessment over including the nice-to-have. Sondra is editing each article herself for taste; your job is to catch things that actually matter, not to always-have-something-to-say.
 - Plain voice. No em dashes. No filler.`,
     },
     structuredOutputType: 'json',

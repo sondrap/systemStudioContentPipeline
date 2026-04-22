@@ -644,6 +644,45 @@ export function ArticlePage() {
           </div>
         </div>
 
+        {/* Ready-to-Publish badge — appears when BOTH critiques are clean
+            (zero critical + zero should-fix across both reviewers). The
+            whole point of the critique system is to give Sondra a clear
+            signal that the article is ready; without this badge, she was
+            reading through critiques every iteration looking for that
+            signal herself. If the badge is green, she can publish without
+            worrying about the panels below. */}
+        {(() => {
+          const draftIssues = article.draftCritique?.issues || [];
+          const seoIssues = article.seoCritique?.issues || [];
+          const actionableDraft = draftIssues.filter(i => i.severity === 'critical' || i.severity === 'should-fix');
+          const actionableSeo = seoIssues.filter(i => i.severity === 'critical' || i.severity === 'should-fix');
+          const bothRun = !!article.draftCritique && !!article.seoCritique;
+          const isClean = bothRun && actionableDraft.length === 0 && actionableSeo.length === 0;
+          if (!bothRun) return null;
+          if (!isClean) return null;
+          return (
+            <div style={{
+              padding: '12px 14px',
+              borderRadius: 10,
+              background: '#57726715',
+              border: '1px solid #57726740',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+            }}>
+              <IconCheck size={18} stroke={2.5} color="var(--accent)" />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>
+                  Ready to publish
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2, lineHeight: 1.4 }}>
+                  Both reviewers cleared this article. Any remaining notes below are nice-to-haves, not blockers.
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Draft Critique Panel — voice, audience fit, structure, flow.
             Accepts flushSave so the critique always runs against the
             latest body (not a stale debounced-save version). */}

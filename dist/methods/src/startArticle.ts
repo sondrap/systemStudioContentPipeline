@@ -742,7 +742,23 @@ This is the HERO image for the article. It should represent the article's overal
 
   // Step 5: Save everything in one update. If hero image failed we keep the
   // article as-is (no imageUrl); the user can regenerate from the editor.
-  const updates: any = { body: finalBody };
+  //
+  // CRITICAL: include the title, excerpt, ogDescription, metaDescription,
+  // and wordCount here. The auto-revise loop can mutate any of these, and
+  // the earlier "Save SEO-optimized draft" at line ~489 only captured the
+  // pre-revise state. If we don't resave them here, the DB keeps the
+  // old title/excerpt/etc. but the body has been revised — and the saved
+  // critiques reference the revised article against the stale metadata,
+  // which surfaces as "the critique keeps flagging the old title."
+  const finalWordCount = finalBody.split(/\s+/).filter(Boolean).length;
+  const updates: any = {
+    title: seoTitle,
+    body: finalBody,
+    excerpt: seoExcerpt,
+    ogDescription: seoOgDescription,
+    metaDescription: seoOgDescription,
+    wordCount: finalWordCount,
+  };
   if (heroUrl) {
     updates.imageUrl = heroUrl;
     updates.coverImageAlt = heroConcept.altText;

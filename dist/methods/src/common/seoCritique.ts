@@ -142,6 +142,7 @@ You are NOT a deterministic checklist (keyword density, meta length, H2 count ar
 - Be HONEST. If the article is strong, say so. Don't invent issues to seem thorough. A short critique with 1-2 real issues beats a long one with 5 fake ones.
 - NEVER suggest keyword stuffing. NEVER suggest generic "optimization" that hurts readability.
 - Return 0-5 issues. If the article is in great shape, return an empty issues array with a strong overallAssessment.
+- **Ship-ready bar.** If the article has the focus keyword in the required placements (title, first 150 words, at least one H2, excerpt, 4+ body mentions), has a meta description in the 140-160 char range, has a reasonable slug, and doesn't have a specific search-performance problem that would meaningfully hurt it, return an empty issues array with a confident "ready to publish" assessment. Do not flag nice-to-haves when everything critical is already solid. An article being "not perfectly optimized" is different from "has SEO issues worth flagging." Sondra is looking for a signal that the article is READY, not an always-present list of marginal improvements.
 - Plain, direct voice. No em dashes, no hype.`,
     },
     structuredOutputType: 'json',
