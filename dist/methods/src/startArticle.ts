@@ -2,6 +2,7 @@ import { auth, mindstudio } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
 import { Topics } from './tables/topics';
 import { VOICE_PROFILE, AUDIENCE_PROFILE, RESEARCH_SOURCES } from './common/voiceProfile';
+import { loadEditorialMemoryDigest } from './common/editorialMemory';
 import { pickImageConcept, renderStillLife, ImageConcept } from './common/generateStillLife';
 import { reviewSeoCritique } from './common/seoCritique';
 import { reviewDraftCritique } from './common/draftCritique';
@@ -147,6 +148,15 @@ Be direct and factual. No filler, no em dashes, no emojis in the brief.`,
 
   // --- DRAFT PHASE ---
   const brief = researchResult.output;
+
+  // Load Sondra's accumulated editorial preferences (corrections from past
+  // Send Back revisions). The drafting prompt includes them so the writer
+  // inherits her taste without her having to correct the same thing twice.
+  // Stages relevant to drafting: drafting, voice, structure, links, general.
+  const editorialMemoryDigest = await loadEditorialMemoryDigest({
+    stages: ['drafting', 'voice', 'structure', 'links', 'general'],
+  });
+
   const { content: articleContent } = await mindstudio.generateText({
     message: `Write a blog article based on the research brief below.
 
@@ -192,6 +202,8 @@ Non-negotiable rule: every article must be drafted with the keyword already in t
 ${AUDIENCE_PROFILE}
 
 ${VOICE_PROFILE}
+
+${editorialMemoryDigest}
 
 ## Audience Check Before You Write
 Before you write a word, picture the reader: a non-technical founder on their phone between meetings. If the opening paragraph would make them think "this isn't for me, I'm not technical enough," restart.

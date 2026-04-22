@@ -125,6 +125,23 @@ export const api = createClient<{
     customLabel?: string;
     direction?: string;
   }): Promise<{ article: Article; image: { imageUrl: string; imageType: 'quote' | 'stat'; text: string; number?: string; label?: string } }>;
+  listEditorialMemories(input?: { onlyActive?: boolean }): Promise<{
+    memories: Array<{
+      id: string;
+      pattern: string;
+      stage: 'drafting' | 'revision' | 'seo' | 'voice' | 'structure' | 'links' | 'general';
+      sourceArticleId: string;
+      sourceNotes: string;
+      active: boolean;
+      created_at: number;
+    }>;
+  }>;
+  updateEditorialMemory(input: {
+    id: string;
+    pattern?: string;
+    active?: boolean;
+    delete?: boolean;
+  }): Promise<{ memory?: any; deleted?: boolean }>;
   resumeArticle(input: { id: string }): Promise<{
     article: Article;
     // Two recovery shapes depending on which path the resume took:

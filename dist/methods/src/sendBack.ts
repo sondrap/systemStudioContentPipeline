@@ -6,6 +6,7 @@ import { reviewDraftCritique } from './common/draftCritique';
 import { normalizeSignoff } from './common/signoff';
 import { stripPaywalledLinks } from './common/paywall';
 import { applyCritiqueFeedback, hasActionableIssues } from './common/applyCritiqueFeedback';
+import { loadEditorialMemoryDigest, extractAndStoreMemory } from './common/editorialMemory';
 
 export async function sendBack(input: { id: string; revisionNotes: string }) {
   auth.requireRole('admin');
@@ -52,6 +53,16 @@ async function rewriteArticle(
     ? `\n\n## SEO Context\nFocus keyword: "${article.focusKeyword}". Keep this keyword in the title, first paragraph, and used naturally 2-3 more times. If revision notes conflict with keyword placement, prioritize the revision notes (the user's edits take precedence over SEO).`
     : '';
 
+  // Load Sondra's accumulated editorial preferences. The revision prompt
+  // gets all stages since revision touches every aspect of the article.
+  const editorialMemoryDigest = await loadEditorialMemoryDigest({
+    stages: ['drafting', 'revision', 'seo', 'voice', 'structure', 'links', 'general'],
+  });
+
+  // Capture the pre-revision state for the memory extractor later
+  const beforeBody = article.body || '';
+  const beforeTitle = article.title;
+
   const { content } = await mindstudio.generateText({
     message: `Rewrite the following article based on the revision notes.
 
@@ -66,6 +77,8 @@ ${seoContext}
 ${AUDIENCE_PROFILE}
 
 ${VOICE_PROFILE}
+
+${editorialMemoryDigest}
 
 ## Format
 Write in Markdown. Use ## for major sections, ### for subsections. Short punchy paragraphs.
@@ -249,7 +262,27 @@ Output ONLY the revised article body in markdown. No preamble, no explanation.`,
 
   await Articles.update(articleId, critiqueUpdates);
 
-  {
-    console.log(`[${articleId}] Critiques refreshed. SEO: ${seoResult?.issues.length ?? 'failed'}. Draft: ${draftResult?.issues.length ?? 'failed'}.`);
+  console.log(`[${articleId}] Critiques refreshed. SEO: ${seoResult?.issues.length ?? 'failed'}. Draft: ${draftResult?.issues.length ?? 'failed'}.`);
+
+  // Editorial memory extraction — runs AFTER the revision and critiques
+  // have settled. The extractor looks at what Sondra asked for via
+  // revision notes and decides if the correction is a pattern worth
+  // remembering for future articles. Conservative by design: when in
+  // doubt, it skips storing rather than adding noise to future drafts.
+  //
+  // Fire-and-forget (no await on the update chain) so memory extraction
+  // doesn't delay the user seeing their revised article. Errors are
+  // logged but don't block anything.
+  if (revisionNotes && revisionNotes.trim().length > 10) {
+    extractAndStoreMemory({
+      articleId,
+      revisionNotes,
+      beforeBody,
+      afterBody: currentBody,
+      beforeTitle,
+      afterTitle: currentTitle,
+    }).catch((err) => {
+      console.error(`[${articleId}] Editorial memory extraction failed (non-blocking):`, err);
+    });
   }
 }

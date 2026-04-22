@@ -14,10 +14,11 @@
     },
     {
       "name": "Voice as a Moat",
-      "narrative": "Every article sharpens what the pipeline knows — about search, about Sondra's body of work, and about what her writing actually looks like when it's at its best.",
+      "narrative": "Every correction Sondra makes teaches the pipeline something — about her taste, her voice, and how she thinks — until the system becomes more her with every article it produces.",
       "items": [
         "seo-intelligence.md",
         "voice-training-studio.md",
+        "pattern-learning-system.md",
         "internal-linking.md",
         "search-data-integration.md"
       ]

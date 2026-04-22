@@ -19,7 +19,8 @@
   "tables": [
     { "name": "articles", "path": "dist/methods/src/tables/articles.ts", "export": "Articles" },
     { "name": "topics", "path": "dist/methods/src/tables/topics.ts", "export": "Topics" },
-    { "name": "users", "path": "dist/methods/src/tables/users.ts", "export": "Users" }
+    { "name": "users", "path": "dist/methods/src/tables/users.ts", "export": "Users" },
+    { "name": "editorial_memories", "path": "dist/methods/src/tables/editorialMemory.ts", "export": "EditorialMemories" }
   ],
 
   "methods": [
@@ -47,7 +48,9 @@
     { "id": "regenerate-linkedin-post", "name": "Regenerate LinkedIn Post", "path": "dist/methods/src/regenerateLinkedInPost.ts", "export": "regenerateLinkedInPost" },
     { "id": "update-linkedin-post", "name": "Update LinkedIn Post", "path": "dist/methods/src/updateLinkedInPost.ts", "export": "updateLinkedInPost" },
     { "id": "regenerate-linkedin-image", "name": "Regenerate LinkedIn Image", "path": "dist/methods/src/regenerateLinkedInImage.ts", "export": "regenerateLinkedInImage" },
-    { "id": "resume-article", "name": "Resume Article", "path": "dist/methods/src/resumeArticle.ts", "export": "resumeArticle" }
+    { "id": "resume-article", "name": "Resume Article", "path": "dist/methods/src/resumeArticle.ts", "export": "resumeArticle" },
+    { "id": "list-editorial-memories", "name": "List Editorial Memories", "path": "dist/methods/src/listEditorialMemories.ts", "export": "listEditorialMemories" },
+    { "id": "update-editorial-memory", "name": "Update Editorial Memory", "path": "dist/methods/src/updateEditorialMemory.ts", "export": "updateEditorialMemory" }
   ],
 
   "interfaces": [
