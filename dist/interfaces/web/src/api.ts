@@ -104,6 +104,7 @@ export const api = createClient<{
   publishArticle(input: { id: string }): Promise<{ article: Article }>;
   unpublishArticle(input: { id: string }): Promise<{ article: Article; dryRun?: boolean; wasAlreadyMissing?: boolean }>;
   sendBack(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;
+  sendBackToResearch(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;
   regenerateImage(input: {
     id: string;
     customConcept?: {

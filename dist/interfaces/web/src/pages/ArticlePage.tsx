@@ -198,6 +198,26 @@ export function ArticlePage() {
     }
   };
 
+  // Send back to research — the angle is off or the existing brief is missing
+  // material this rewrite needs (different definitions, different examples,
+  // etc.). Re-runs the full research phase with the notes as steering, then
+  // re-drafts. Slower than a regular Send Back but comes back with actually
+  // new raw material instead of remixing what the brief already has.
+  const handleSendBackToResearch = async () => {
+    if (!articleId || !revisionNotes.trim() || sendingBack) return;
+    setSendingBack(true);
+    try {
+      await api.sendBackToResearch({ id: articleId, revisionNotes: revisionNotes.trim() });
+      updateArticleLocal(articleId, { status: 'researching', revisionNotes: revisionNotes.trim() });
+      setShowSendBack(false);
+      setRevisionNotes('');
+    } catch (err: any) {
+      alert(err.message || 'Send back to research failed.');
+    } finally {
+      setSendingBack(false);
+    }
+  };
+
   // Standard regenerate — AI picks the concept. Used by the "Regenerate
   // Image" button and the close of the custom concept editor.
   const handleRegenerateImage = async (customConcept?: {
@@ -1048,23 +1068,46 @@ export function ArticlePage() {
           )}
 
           {showSendBack && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
               <textarea
                 className="input"
                 value={revisionNotes}
                 onChange={(e) => setRevisionNotes(e.target.value)}
                 placeholder="What should be different?"
-                rows={3}
+                rows={4}
                 style={{ resize: 'vertical' }}
               />
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleSendBack}
-                disabled={!revisionNotes.trim() || sendingBack}
-                style={{ width: '100%' }}
-              >
-                {sendingBack ? <IconLoader2 size={14} className="spinner" /> : 'Send Back to Drafting'}
-              </button>
+
+              {/* Two lanes: rewrite within the existing brief, or rebuild from
+                  fresh research. Each has a short hint so Sondra can pick
+                  without second-guessing. */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleSendBack}
+                  disabled={!revisionNotes.trim() || sendingBack}
+                  style={{ width: '100%' }}
+                >
+                  {sendingBack ? <IconLoader2 size={14} className="spinner" /> : 'Send back to drafting'}
+                </button>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4, padding: '0 2px' }}>
+                  The angle is right, the prose needs work. Fast. Uses the existing research.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleSendBackToResearch}
+                  disabled={!revisionNotes.trim() || sendingBack}
+                  style={{ width: '100%' }}
+                >
+                  {sendingBack ? <IconLoader2 size={14} className="spinner" /> : 'Send back to research'}
+                </button>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4, padding: '0 2px' }}>
+                  The angle is off or the brief is missing material. Slower. Re-runs research with your notes as steering.
+                </div>
+              </div>
             </div>
           )}
 

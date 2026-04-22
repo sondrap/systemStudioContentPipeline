@@ -65,8 +65,17 @@ export async function startArticle(input: {
   return { article };
 }
 
-// Background pipeline: research → draft → image → review
-async function runResearchAndDraft(articleId: string, title: string, description: string, topicKeyword: string = '') {
+// Background pipeline: research → draft → image → review.
+// Exported so sendBackToResearch can re-run the same pipeline on an existing
+// article. When angleNotes is provided, it steers both the research AND the
+// draft prompts toward the specific take Sondra wants.
+export async function runResearchAndDraft(
+  articleId: string,
+  title: string,
+  description: string,
+  topicKeyword: string = '',
+  angleNotes: string = '',
+) {
   // --- RESEARCH PHASE ---
   console.log(`[${articleId}] Starting research for: ${title}${topicKeyword ? ` (keyword: ${topicKeyword})` : ''}`);
 
@@ -84,7 +93,7 @@ async function runResearchAndDraft(articleId: string, title: string, description
     prompt: `You are a research assistant for Sondra Patton, a content strategist who helps non-technical founders navigate AI without having to become technical. Your job is to compile a research brief that supports an article written FOR her audience, not FOR AI practitioners.
 
 ${AUDIENCE_PROFILE}
-
+${angleNotes ? `\n## SPECIFIC ANGLE — READ FIRST\n\nThis is a re-research pass. The previous draft didn't land the way Sondra wanted, and she's asking for a different take. Her specific steering:\n\n> ${angleNotes.trim().replace(/\n/g, '\n> ')}\n\nThis angle overrides the default scoping. Do not research the generic version of this topic. Research specifically in support of this take. If her notes ask for examples, find them. If they ask for specific definitions or quotes, go hunt for them. If they ask for contrasts or comparisons, gather the material on both sides. Every source and finding you capture must help the writer deliver THIS angle.\n` : ''}
 Research deeply, not widely. Prioritize understanding 5 quality sources over skimming 20. Focus on information that lands with a non-technical founder reading at 11pm on their phone.
 
 ${RESEARCH_SOURCES}
@@ -162,7 +171,7 @@ Be direct and factual. No filler, no em dashes, no emojis in the brief.`,
 
 ## Topic
 ${title}
-
+${angleNotes ? `\n## SPECIFIC ANGLE — TOP PRIORITY\n\nSondra asked for a specific take on this topic. This steers the whole article:\n\n${angleNotes.trim()}\n\nThe research brief below was built in support of this angle. Deliver the article Sondra asked for. Do not default to a generic explainer.\n` : ''}
 ## Research Brief
 Summary: ${brief.summary}
 

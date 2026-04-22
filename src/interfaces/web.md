@@ -89,7 +89,10 @@ Centered reading column (max-width 680px) with a metadata panel on the right (28
 - Actions pinned to bottom:
   - In Review: "Approve & Publish" (Blush Veil filled button) + "Send Back" (ghost)
   - When editing: "Save Changes" replaces approve button (no layout shift)
-  - "Send Back" opens a textarea for revision notes before sending back to drafting
+  - "Send Back" opens a textarea for revision notes, then offers two distinct lanes:
+    - [Send back to drafting]{Primary button. Fast path. Reuses the existing research brief and rewrites the article with the notes as guidance. Use when the angle is right but the prose needs work. Typical turnaround: 30 seconds.}
+    - [Send back to research]{Ghost button below the primary. Slow path. Re-runs the entire research phase with the notes as steering context, then re-drafts. Use when the angle is off or the brief is missing raw material (new definitions, new examples, new sources) that the new version needs. Typical turnaround: 2-5 minutes.}
+    - Each button has a one-line hint in secondary text beneath it so the choice is unambiguous.
   - "Regenerate Image" button (ghost) to get a new hero image
 
 Content loads with a fade-in from opacity 0 with `translateY(4px)` over 300ms. Metadata panel items stagger in with 50ms delays.
