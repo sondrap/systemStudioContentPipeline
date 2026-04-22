@@ -1,11 +1,8 @@
 import { auth, mindstudio } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
 import { VOICE_PROFILE, AUDIENCE_PROFILE } from './common/voiceProfile';
-import { reviewSeoCritique } from './common/seoCritique';
-import { reviewDraftCritique } from './common/draftCritique';
 import { normalizeSignoff } from './common/signoff';
 import { stripPaywalledLinks } from './common/paywall';
-import { applyCritiqueFeedback, hasActionableIssues } from './common/applyCritiqueFeedback';
 import { loadEditorialMemoryDigest, extractAndStoreMemory } from './common/editorialMemory';
 
 export async function sendBack(input: { id: string; revisionNotes: string }) {
@@ -116,171 +113,37 @@ Output ONLY the revised article body in markdown. No preamble, no explanation.`,
   }
   const wordCount = normalizedContent.split(/\s+/).filter(Boolean).length;
 
-  // Save the rewritten body quickly so the user can see progress, then
-  // kick off the critique + auto-revise loop.
+  // Save the rewritten article and clear the stale critiques. Sondra's
+  // revision notes ARE the editorial direction for this pass — the AI
+  // critics should not second-guess her judgment by re-flagging issues
+  // on the rewrite. If she wants a fresh AI opinion later, both critique
+  // panels have a Re-run button.
   await Articles.update(articleId, {
     body: normalizedContent,
     wordCount,
     status: 'review',
     revisionNotes: undefined,
+    // Clear the previous critiques. They were about the old draft and
+    // would be misleading to display alongside the new body.
+    seoCritique: undefined,
+    draftCritique: undefined,
   });
 
-  console.log(`[${articleId}] Rewrite complete (${wordCount} words). Running critiques...`);
+  console.log(`[${articleId}] Rewrite complete (${wordCount} words). Critiques cleared — Sondra's notes are the editorial direction for this pass.`);
 
-  // Work with a local copy we'll revise through the auto-loop.
-  let currentTitle = article.title;
-  let currentExcerpt = article.excerpt || '';
-  let currentBody = normalizedContent;
-  let currentOgDescription = article.ogDescription || article.metaDescription || '';
-  const focusKeyword = article.focusKeyword || '';
-
-  // Run fresh SEO and draft critiques in parallel on the revised article.
-  const [seoResultInitial, draftResultInitial] = await Promise.all([
-    reviewSeoCritique({
-      title: currentTitle,
-      body: currentBody,
-      excerpt: currentExcerpt,
-      focusKeyword,
-      metaDescription: currentOgDescription,
-      competitorInsights: article.researchBrief?.competitorInsights,
-    }).catch(err => {
-      console.error(`[${articleId}] SEO critique refresh failed:`, err);
-      return null;
-    }),
-    reviewDraftCritique({
-      title: currentTitle,
-      body: currentBody,
-      excerpt: currentExcerpt,
-    }).catch(err => {
-      console.error(`[${articleId}] Draft critique refresh failed:`, err);
-      return null;
-    }),
-  ]);
-
-  // AUTO-REVISE LOOP — same pattern as startArticle. After a Send Back
-  // rewrite, the critiques run and any critical/should-fix issues get
-  // reconciled automatically so Sondra doesn't have to do the mechanical
-  // compliance work by hand.
-  const MAX_REVISION_ITERATIONS = 2;
-  let seoResult = seoResultInitial;
-  let draftResult = draftResultInitial;
-  const skippedIssuesAccumulated: Array<{ area: string; issue: string }> = [];
-  let iterationsRun = 0;
-
-  for (let i = 0; i < MAX_REVISION_ITERATIONS; i++) {
-    const bundle = {
-      seo: seoResult || undefined,
-      draft: draftResult || undefined,
-    };
-
-    if (!hasActionableIssues(bundle)) {
-      console.log(`[${articleId}] Auto-revise: no actionable issues remaining after ${i} iteration(s).`);
-      break;
-    }
-
-    console.log(`[${articleId}] Auto-revise iteration ${i + 1}/${MAX_REVISION_ITERATIONS}: applying critique feedback...`);
-
-    try {
-      const revised = await applyCritiqueFeedback({
-        title: currentTitle,
-        excerpt: currentExcerpt,
-        body: currentBody,
-        ogDescription: currentOgDescription,
-        focusKeyword: focusKeyword || undefined,
-        critiques: bundle,
-        alreadySkipped: skippedIssuesAccumulated,
-      });
-
-      if (!revised.anyChanges) {
-        console.log(`[${articleId}] Auto-revise iteration ${i + 1}: reconciliation declined all remaining issues (voice lock). Stopping loop.`);
-        for (const s of revised.skippedIssues) {
-          skippedIssuesAccumulated.push({ area: s.area, issue: s.issue });
-        }
-        break;
-      }
-
-      currentTitle = revised.title;
-      currentExcerpt = revised.excerpt;
-      currentBody = normalizeSignoff(revised.body);
-      currentBody = stripPaywalledLinks(currentBody).body;
-      currentOgDescription = revised.ogDescription;
-      iterationsRun = i + 1;
-
-      for (const s of revised.skippedIssues) {
-        skippedIssuesAccumulated.push({ area: s.area, issue: s.issue });
-      }
-
-      // Re-critique the revised article for the next iteration
-      const [newSeo, newDraft] = await Promise.all([
-        reviewSeoCritique({
-          title: currentTitle,
-          body: currentBody,
-          excerpt: currentExcerpt,
-          focusKeyword,
-          metaDescription: currentOgDescription,
-          competitorInsights: article.researchBrief?.competitorInsights,
-        }).catch(err => {
-          console.error(`[${articleId}] Auto-revise SEO re-critique failed:`, err);
-          return seoResult;
-        }),
-        reviewDraftCritique({
-          title: currentTitle,
-          body: currentBody,
-          excerpt: currentExcerpt,
-        }).catch(err => {
-          console.error(`[${articleId}] Auto-revise Draft re-critique failed:`, err);
-          return draftResult;
-        }),
-      ]);
-
-      seoResult = newSeo;
-      draftResult = newDraft;
-
-      console.log(`[${articleId}] Auto-revise iteration ${i + 1} complete.`);
-    } catch (err) {
-      console.error(`[${articleId}] Auto-revise iteration ${i + 1} failed, stopping loop:`, err);
-      break;
-    }
-  }
-
-  // Save the final revised article content + critiques
-  const finalWordCount = currentBody.split(/\s+/).filter(Boolean).length;
-  const critiqueUpdates: any = {
-    title: currentTitle,
-    excerpt: currentExcerpt,
-    body: currentBody,
-    ogDescription: currentOgDescription,
-    metaDescription: currentOgDescription,
-    wordCount: finalWordCount,
-  };
-  if (seoResult) critiqueUpdates.seoCritique = seoResult;
-  if (draftResult) critiqueUpdates.draftCritique = draftResult;
-
-  if (iterationsRun > 0) {
-    console.log(`[${articleId}] Auto-revise complete: ${iterationsRun} iteration(s) ran, ${skippedIssuesAccumulated.length} issues preserved for voice.`);
-  }
-
-  await Articles.update(articleId, critiqueUpdates);
-
-  console.log(`[${articleId}] Critiques refreshed. SEO: ${seoResult?.issues.length ?? 'failed'}. Draft: ${draftResult?.issues.length ?? 'failed'}.`);
-
-  // Editorial memory extraction — runs AFTER the revision and critiques
-  // have settled. The extractor looks at what Sondra asked for via
-  // revision notes and decides if the correction is a pattern worth
-  // remembering for future articles. Conservative by design: when in
-  // doubt, it skips storing rather than adding noise to future drafts.
-  //
-  // Fire-and-forget (no await on the update chain) so memory extraction
-  // doesn't delay the user seeing their revised article. Errors are
-  // logged but don't block anything.
+  // Editorial memory extraction — fire-and-forget. The extractor looks
+  // at what Sondra asked for via revision notes and decides if the
+  // correction is a pattern worth remembering for future articles.
+  // Conservative by design: when in doubt, skips storing rather than
+  // adding noise to future drafts.
   if (revisionNotes && revisionNotes.trim().length > 10) {
     extractAndStoreMemory({
       articleId,
       revisionNotes,
       beforeBody,
-      afterBody: currentBody,
+      afterBody: normalizedContent,
       beforeTitle,
-      afterTitle: currentTitle,
+      afterTitle: article.title,
     }).catch((err) => {
       console.error(`[${articleId}] Editorial memory extraction failed (non-blocking):`, err);
     });
