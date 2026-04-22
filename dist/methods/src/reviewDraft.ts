@@ -23,9 +23,13 @@ export async function reviewDraft(input: { id: string }) {
 
   // The critique took ~25s to generate. If the platform's Redis layer
   // hiccups on the save, retry rather than throwing away expensive work.
+  // Restamp generatedAt at save time so the UI freshness check compares
+  // against the save moment, not the generation moment ~25s earlier. Keeps
+  // the critique panel from showing "out of date" the instant it lands.
+  const freshCritique = { ...critique, generatedAt: Date.now() };
   const updated = await withDbRetry(
-    () => Articles.update(input.id, { draftCritique: critique }),
+    () => Articles.update(input.id, { draftCritique: freshCritique }),
     { label: 'reviewDraft.save' },
   );
-  return { article: updated, critique };
+  return { article: updated, critique: freshCritique };
 }

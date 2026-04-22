@@ -27,9 +27,14 @@ export async function reviewSeo(input: { id: string }) {
 
   // Same retry rationale as reviewDraft: the critique took ~25s to generate.
   // Don't throw away expensive AI work because of a transient Redis blip.
+  // Restamp generatedAt at save time so the freshness check in the UI
+  // compares against when the critique was saved, not when it started
+  // running ~25s earlier. Otherwise the critique appears stale the moment
+  // it lands.
+  const freshCritique = { ...critique, generatedAt: Date.now() };
   const updated = await withDbRetry(
-    () => Articles.update(input.id, { seoCritique: critique }),
+    () => Articles.update(input.id, { seoCritique: freshCritique }),
     { label: 'reviewSeo.save' },
   );
-  return { article: updated, critique };
+  return { article: updated, critique: freshCritique };
 }

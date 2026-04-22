@@ -777,12 +777,16 @@ This is the HERO image for the article. It should represent the article's overal
     // Save the chosen objects so future articles can avoid repeating them
     updates.heroImageObjects = heroConcept.objects.map(o => o.name);
   }
+  // Restamp generatedAt at save time so the UI's freshness check compares
+  // against when the critique was saved — not when it was generated in a
+  // parallel batch that may have finished tens of seconds before the save.
+  const critiqueSaveTimestamp = Date.now();
   if (seoCritiqueResult) {
-    updates.seoCritique = seoCritiqueResult;
+    updates.seoCritique = { ...seoCritiqueResult, generatedAt: critiqueSaveTimestamp };
     console.log(`[${articleId}] SEO critique: ${seoCritiqueResult.issues.length} issues (${seoCritiqueResult.issues.filter(i => i.severity === 'critical').length} critical)`);
   }
   if (draftCritiqueResult) {
-    updates.draftCritique = draftCritiqueResult;
+    updates.draftCritique = { ...draftCritiqueResult, generatedAt: critiqueSaveTimestamp };
     console.log(`[${articleId}] Draft critique: ${draftCritiqueResult.issues.length} issues (${draftCritiqueResult.issues.filter(i => i.severity === 'critical').length} critical)`);
   }
   if (linkedInPostsResult && linkedInPostsResult.length > 0) {

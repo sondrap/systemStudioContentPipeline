@@ -167,11 +167,16 @@ This is the HERO image for the article. It should represent the article's overal
     updates.coverImageAlt = imageResult.concept.altText;
     updates.heroImageObjects = imageResult.concept.objects.map(o => o.name);
   }
+  // Restamp generatedAt at save time so the freshness check in the UI
+  // compares against when the critique was saved (not when it was generated
+  // in a Promise.all batch — which can be many seconds earlier, making the
+  // critique falsely appear stale the moment the user opens the article).
+  const saveTimestamp = Date.now();
   if (seoCritiqueResult) {
-    updates.seoCritique = seoCritiqueResult;
+    updates.seoCritique = { ...seoCritiqueResult, generatedAt: saveTimestamp };
   }
   if (draftCritiqueResult) {
-    updates.draftCritique = draftCritiqueResult;
+    updates.draftCritique = { ...draftCritiqueResult, generatedAt: saveTimestamp };
   }
   if (linkedInPostsResult && linkedInPostsResult.length > 0) {
     updates.linkedInPosts = linkedInPostsResult;
