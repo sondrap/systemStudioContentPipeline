@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import { api, Topic } from '../api';
-import { IconPlus, IconSearch, IconArchive, IconLoader2, IconDots, IconRocket, IconTrash, IconRadar2, IconCompass, IconCheck, IconRefresh, IconTrendingUp, IconKey, IconBolt, IconSend } from '@tabler/icons-react';
+import { IconPlus, IconSearch, IconArchive, IconLoader2, IconDots, IconRocket, IconTrash, IconRadar2, IconRefresh, IconTrendingUp, IconKey, IconBolt, IconSend } from '@tabler/icons-react';
 import { useLocation } from 'wouter';
 
 function formatDate(ts?: number) {
@@ -29,11 +29,6 @@ export function BacklogPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [refreshing, setRefreshing] = useState<string | null>(null);
-  const editorialDirection = useStore((s) => s.editorialDirection);
-  const setEditorialDirection = useStore((s) => s.setEditorialDirection);
-  const [directionDraft, setDirectionDraft] = useState<string | null>(null);
-  const [savingDirection, setSavingDirection] = useState(false);
-  const [directionSaved, setDirectionSaved] = useState(false);
 
   // Filter to backlog topics and sort
   const topics = allTopics
@@ -97,22 +92,6 @@ export function BacklogPage() {
   };
 
   const loadData = useStore((s) => s.loadData);
-
-  const handleSaveDirection = async () => {
-    if (directionDraft === null) return;
-    setSavingDirection(true);
-    try {
-      await api.updateEditorialDirection({ direction: directionDraft });
-      setEditorialDirection(directionDraft);
-      setDirectionDraft(null);
-      setDirectionSaved(true);
-      setTimeout(() => setDirectionSaved(false), 2000);
-    } catch (err: any) {
-      console.error('Failed to save editorial direction:', err);
-    } finally {
-      setSavingDirection(false);
-    }
-  };
 
   const handleRefreshTopic = async (topicId: string) => {
     if (refreshing) return;
@@ -192,52 +171,6 @@ export function BacklogPage() {
           <button className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
             <IconPlus size={14} stroke={2} /> Add Topic
           </button>
-        </div>
-
-        {/* Editorial Direction */}
-        <div style={{ padding: '0 24px 16px' }}>
-          <div style={{
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 12,
-            padding: 16,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <IconCompass size={14} stroke={1.5} color="var(--accent)" />
-              <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-                Editorial Direction
-              </span>
-              {directionSaved && (
-                <span style={{ fontSize: 11, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
-                  <IconCheck size={12} stroke={2} /> Saved
-                </span>
-              )}
-            </div>
-            <textarea
-              value={directionDraft !== null ? directionDraft : editorialDirection}
-              onChange={(e) => setDirectionDraft(e.target.value)}
-              onBlur={() => {
-                if (directionDraft !== null && directionDraft !== editorialDirection) {
-                  handleSaveDirection();
-                } else {
-                  setDirectionDraft(null);
-                }
-              }}
-              placeholder="What are you focused on right now? The topic scanner reads this every time it runs. e.g., 'Interested in AI tools course creators can use without a developer. Done with chatbot topics for now.'"
-              rows={2}
-              style={{
-                width: '100%',
-                border: 'none',
-                outline: 'none',
-                background: 'transparent',
-                fontSize: 13,
-                lineHeight: 1.6,
-                color: 'var(--text-primary)',
-                resize: 'none',
-                fontFamily: 'inherit',
-              }}
-            />
-          </div>
         </div>
 
         {/* Quick Capture — paste a URL or a sentence, pipeline researches and frames it */}

@@ -17,28 +17,32 @@ When discussing AI topics, the agent should have actual opinions. "RAG is evolvi
 Uses markdown in responses (the chat UI renders it). No em dashes. No emojis.
 
 ## Capabilities
-
 - **Topic brainstorming:** Can suggest article topics based on recent developments, Sondra's content angle, and gaps in what she's covered. Should reference specific sources and developments, not just categories.
 - **Quick research:** Can search the web and summarize findings on a topic before it enters the pipeline. Useful for gut-checking whether a topic has enough substance.
 - **Pipeline management:** Can start research on a topic, create new topics in the backlog, check the status of articles in the pipeline.
 - **Article discussion:** Can discuss outlines, suggest angles, and help refine article concepts through conversation.
+- **Editorial direction management:** The editorial direction is a short living note that steers the topic scanner and frames what kind of articles Sondra wants right now. There is no settings UI for it; it lives entirely in chat. When Sondra signals a shift in tone or focus ("keep things encouraging", "enough chatbot topics for a while"), the agent reads the current direction, proposes the new wording, and saves it after Sondra confirms.
+
+~~~
+The editorial direction is stored on the user record as `editorialDirection` and is surfaced to the agent via every `get-dashboard-data` call. The `update-editorial-direction` tool is how the agent writes it. Do not use this tool for one-article feedback; that belongs on a Send Back note. The tool description enumerates the signals that should trigger an update.
+~~~
 
 ## Tool Usage
 
 When multiple tool calls are independent, make them all in a single turn. Searching for information while also checking the pipeline status: batch them.
 
 ## Exposed Methods
-
 The agent has access to:
 - `createTopic` — Add a topic to the backlog
-- `listTopics` — View the current backlog
+- `getDashboardData` — View current articles, topics, and the active editorial direction (slim mode)
 - `startArticle` — Kick off the research pipeline for a topic
-- `listArticles` — Check the status of articles in the pipeline
 - `getArticle` — Get the full details of a specific article
 - `searchWeb` — Quick web search for research or topic validation
+- `scanTopics` — Trigger the topic scanner to propose new backlog entries
+- `updateEditorialDirection` — Set or revise the living editorial direction note
 
 ~~~
-The agent should NOT have access to: `publishArticle` (publishing is always a deliberate manual action), `deleteArticle`, or any admin/settings methods. The agent can suggest and create, but destructive and publishing actions stay in the UI.
+The agent should NOT have access to: `publishArticle` (publishing is always a deliberate manual action), `deleteArticle`, `deleteTopic`, `sendBack`, or other destructive/settings methods. The agent can suggest, create, and update editorial direction, but destructive and publishing actions stay in the UI.
 
-Tool descriptions should emphasize when to use each tool and what makes a good input. The `searchWeb` tool description should note that it's for quick validation research during conversation, not a replacement for the full research pipeline.
+Tool descriptions emphasize when to use each tool and what makes a good input. The `searchWeb` tool description notes that it's for quick validation research during conversation, not a replacement for the full research pipeline. The `updateEditorialDirection` description requires the agent to read the current direction first, propose the new text to Sondra, and save only after confirmation.
 ~~~

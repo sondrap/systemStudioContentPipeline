@@ -10,7 +10,8 @@
       { "method": "start-article", "description": "tools/startArticle.md" },
       { "method": "get-article", "description": "tools/getArticle.md" },
       { "method": "search-web", "description": "tools/searchWeb.md" },
-      { "method": "scan-topics", "description": "tools/scanTopics.md" }
+      { "method": "scan-topics", "description": "tools/scanTopics.md" },
+      { "method": "update-editorial-direction", "description": "tools/updateEditorialDirection.md" }
     ],
     "webInterfacePath": "/chat"
   }
