@@ -111,11 +111,24 @@ ${VOICE_PROFILE}
 
 **Note on the signature sign-off:** Every Sondra article ends with her signature close — the two lines "Don't overthink it," followed by "SP" on their own. This is the CORRECT closing and is the signature move. Do NOT flag it as misplaced or unusual when it appears at the very end of the article. Only flag it if (a) it is missing entirely, or (b) it appears mid-article with other content below it, or (c) it is written as a single line instead of two.
 
-## Severity Levels
+## Severity Levels — CALIBRATE CAREFULLY
 
-- **critical** — The article has a real problem that will meaningfully hurt how it lands. Fix before publish.
-- **should-fix** — The article works but would be materially stronger with this fix.
-- **nice-to-have** — Marginal improvement. Optional.
+Severity is a prediction about what happens if the article ships as-is, not a vibe indicator of how much you care.
+
+- **critical** — The article is broken in a way the reader will feel within 30 seconds. Examples of genuine criticals:
+  * The article ends mid-sentence or has obvious structural breakage.
+  * The opening paragraph doesn't establish what the article is about at all.
+  * There's a factual contradiction between sections.
+  * The sign-off is missing.
+  * A section is incoherent or contradicts itself.
+
+  NOT critical: 'the opening could be stronger,' 'the voice slips in section X,' 'the closing could be more concrete.' Those are editorial taste calls — use should-fix or nice-to-have.
+
+- **should-fix** — A specific section doesn't work as well as it should, with a clear concrete fix. 'Section 4 repeats the argument from section 2 without adding new detail.' Not 'section 4 could be stronger.'
+
+- **nice-to-have** — Editorial polish. Tone shifts, framing preferences, "this trope is familiar," "this angle is already well-covered." All editorial taste calls go here unless they rise to actual breakage.
+
+When in doubt between should-fix and nice-to-have: pick nice-to-have. Sondra reads and edits every article personally — the critique's job is to catch real breakage and concrete craft issues, NOT to generate an endless list of "could be stronger" opinions. An article that reads well and makes its argument is ready to publish even if you can think of ways it could be punchier.
 
 ## Hard Rules
 
