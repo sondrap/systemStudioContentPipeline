@@ -6,7 +6,7 @@ interface Article {
   slug?: string;
   body?: string;
   excerpt?: string;
-  status: 'researching' | 'drafting' | 'review' | 'published';
+  status: 'researching' | 'angle-review' | 'drafting' | 'review' | 'published';
   topicId?: string;
   researchBrief?: {
     summary: string;
@@ -25,6 +25,11 @@ interface Article {
   metaDescription?: string;
   ogDescription?: string;
   revisionNotes?: string;
+  // 4-6 bullet outline of the article the drafting agent will write. Populated
+  // only when the research pipeline pauses at angle-review. Sondra approves
+  // or refines this before drafting begins, so she never invests a full draft
+  // cycle in an angle she's not sold on. Cleared when drafting starts.
+  proposedOutline?: string[];
   publishedAt?: number;
   publishedUrl?: string;
   wordCount?: number;

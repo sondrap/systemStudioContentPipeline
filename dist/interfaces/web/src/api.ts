@@ -1,6 +1,6 @@
 import { createClient } from '@mindstudio-ai/interface';
 
-export type ArticleStatus = 'researching' | 'drafting' | 'review' | 'published';
+export type ArticleStatus = 'researching' | 'angle-review' | 'drafting' | 'review' | 'published';
 export type ArticleType = 'thought-leadership' | 'educational' | 'commentary' | 'mixed';
 
 export interface Article {
@@ -29,6 +29,10 @@ export interface Article {
   metaDescription?: string;
   ogDescription?: string;
   revisionNotes?: string;
+  // 4-6 bullet outline shown during angle-review so Sondra can approve the
+  // proposed article shape before drafting invests in it. Populated only
+  // while status is 'angle-review'. Cleared when drafting starts.
+  proposedOutline?: string[];
   publishedAt?: number;
   publishedUrl?: string;
   wordCount?: number;
@@ -105,6 +109,7 @@ export const api = createClient<{
   unpublishArticle(input: { id: string }): Promise<{ article: Article; dryRun?: boolean; wasAlreadyMissing?: boolean }>;
   sendBack(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;
   sendBackToResearch(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;
+  approveAngle(input: { id: string; angleNotes?: string }): Promise<{ status: string }>;
   regenerateImage(input: {
     id: string;
     customConcept?: {

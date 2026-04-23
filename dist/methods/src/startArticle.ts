@@ -66,18 +66,51 @@ export async function startArticle(input: {
 }
 
 // Background pipeline: research → draft → image → review.
-// Exported so sendBackToResearch can re-run the same pipeline on an existing
-// article. When angleNotes is provided, it steers both the research AND the
-// draft prompts toward the specific take Sondra wants.
+// Exported so sendBackToResearch and approveAngle can trigger it against an
+// existing article.
+//
+// Options:
+//   pauseForAngleReview: after research completes, generate a proposed
+//     outline, flip the article to 'angle-review', and return. Sondra approves
+//     or refines the angle before any drafting happens. Used by
+//     sendBackToResearch so she doesn't burn another full draft cycle on an
+//     angle she's not sold on.
+//   skipResearch: the brief is already in the DB — jump straight to drafting.
+//     Used by approveAngle after Sondra greenlights the angle.
+//
+// When angleNotes is provided, it steers the research AND draft prompts
+// toward the specific take Sondra wants.
 export async function runResearchAndDraft(
   articleId: string,
   title: string,
   description: string,
   topicKeyword: string = '',
   angleNotes: string = '',
+  options: { pauseForAngleReview?: boolean; skipResearch?: boolean } = {},
 ) {
-  // --- RESEARCH PHASE ---
-  console.log(`[${articleId}] Starting research for: ${title}${topicKeyword ? ` (keyword: ${topicKeyword})` : ''}`);
+  // `brief` gets populated either by the research phase below or by reading
+  // from the DB when skipResearch=true. The draft phase reads from it.
+  let brief: NonNullable<Awaited<ReturnType<typeof Articles.get>>>['researchBrief'];
+
+  if (options.skipResearch) {
+    // approveAngle path. Research already done; brief sitting in the article
+    // record. Pull it out and fall through to drafting.
+    const existing = await Articles.get(articleId);
+    if (!existing) throw new Error('Article not found.');
+    if (!existing.researchBrief) {
+      throw new Error(`[${articleId}] No research brief on article — cannot skip research.`);
+    }
+    brief = existing.researchBrief;
+    // Respect article's stored values if the caller passed empty strings.
+    if (!title) title = existing.title;
+    if (!topicKeyword) topicKeyword = existing.focusKeyword || '';
+
+    // Flip to drafting and clear the now-consumed outline.
+    await Articles.update(articleId, { status: 'drafting', proposedOutline: undefined });
+    console.log(`[${articleId}] Angle approved. Skipping research. Starting draft.`);
+  } else {
+    // --- RESEARCH PHASE ---
+    console.log(`[${articleId}] Starting research for: ${title}${topicKeyword ? ` (keyword: ${topicKeyword})` : ''}`);
 
   const researchResult = await mindstudio.runTask<{
     summary: string;
@@ -141,22 +174,59 @@ Be direct and factual. No filler, no em dashes, no emojis in the brief.`,
     maxTurns: 15,
   });
 
-  if (!researchResult.parsedSuccessfully) {
-    console.error('Research failed to produce structured output:', researchResult.outputRaw);
-    throw new Error('Research agent failed to produce structured results.');
+    if (!researchResult.parsedSuccessfully) {
+      console.error('Research failed to produce structured output:', researchResult.outputRaw);
+      throw new Error('Research agent failed to produce structured results.');
+    }
+
+    brief = researchResult.output;
+
+    if (options.pauseForAngleReview) {
+      // Pause: save brief, generate a proposed outline Sondra can approve,
+      // flip to 'angle-review', and return. No drafting happens until she
+      // either clicks Approve (which calls approveAngle) or sends back to
+      // research again with new notes.
+      let proposedOutline: string[] = [];
+      try {
+        proposedOutline = await generateProposedOutline({
+          articleId,
+          title,
+          brief,
+          angleNotes,
+        });
+      } catch (err) {
+        console.error(`[${articleId}] Proposed outline generation failed:`, err);
+        proposedOutline = [
+          'Outline could not be generated. Review the research brief summary to judge the angle, or refine with new notes.',
+        ];
+      }
+
+      await Articles.update(articleId, {
+        researchBrief: brief,
+        focusKeyword: topicKeyword || undefined,
+        status: 'angle-review',
+        proposedOutline,
+        // Clear revision notes — they've been consumed into the new brief and
+        // outline. If Sondra wants to refine further, she'll enter new notes
+        // via the angle-review panel.
+        revisionNotes: undefined,
+      });
+
+      console.log(`[${articleId}] Research complete. Paused for angle review (${proposedOutline.length} outline bullets).`);
+      return;
+    }
+
+    // No pause: save brief, flip to drafting, fall through.
+    await Articles.update(articleId, {
+      researchBrief: brief,
+      focusKeyword: topicKeyword || undefined,
+      status: 'drafting',
+    });
+
+    console.log(`[${articleId}] Research complete. Starting draft.`);
   }
 
-  // Save research brief (including competitor insights)
-  await Articles.update(articleId, {
-    researchBrief: researchResult.output,
-    focusKeyword: topicKeyword || undefined,
-    status: 'drafting',
-  });
-
-  console.log(`[${articleId}] Research complete. Starting draft.`);
-
   // --- DRAFT PHASE ---
-  const brief = researchResult.output;
 
   // Load Sondra's accumulated editorial preferences (corrections from past
   // Send Back revisions). The drafting prompt includes them so the writer
@@ -602,7 +672,7 @@ This is the HERO image for the article. It should represent the article's overal
       excerpt: seoExcerpt,
       focusKeyword,
       metaDescription: seoOgDescription,
-      competitorInsights: researchResult.output.competitorInsights,
+      competitorInsights: brief.competitorInsights,
     }).catch(err => {
       console.error(`[${articleId}] SEO critique failed:`, err);
       return null;
@@ -704,7 +774,7 @@ This is the HERO image for the article. It should represent the article's overal
           excerpt: seoExcerpt,
           focusKeyword,
           metaDescription: seoOgDescription,
-          competitorInsights: researchResult.output.competitorInsights,
+          competitorInsights: brief.competitorInsights,
         }).catch(err => {
           console.error(`[${articleId}] Auto-revise SEO re-critique failed:`, err);
           return seoCritiqueResult;  // fall back to prior critique
@@ -989,4 +1059,64 @@ function insertBodyImages(
   }
 
   return result.join('\n');
+}
+
+// Generate a 4-6 bullet outline of the article the drafting agent intends to
+// write. Shown to Sondra during angle-review so she can approve or refine
+// before a full draft + image + critique pipeline burns on the wrong angle.
+//
+// Outline bullets are section-level: each one is a short heading-style phrase
+// plus a one-sentence description of what that section will argue. Specific to
+// the actual research brief, not generic "Introduction / Body / Conclusion".
+async function generateProposedOutline(opts: {
+  articleId: string;
+  title: string;
+  brief: {
+    summary: string;
+    keyFindings: string[];
+    sources: { url: string; title: string; relevance: string }[];
+    quotes: { text: string; attribution: string }[];
+  };
+  angleNotes: string;
+}): Promise<string[]> {
+  const { title, brief, angleNotes } = opts;
+
+  const { content } = await mindstudio.generateText({
+    message: `Title: ${title}
+${angleNotes ? `\nAngle notes Sondra provided:\n${angleNotes}\n` : ''}
+Research summary:
+${brief.summary}
+
+Key findings from research:
+${brief.keyFindings.map((f, i) => `${i + 1}. ${f}`).join('\n')}
+
+Notable quotes gathered:
+${(brief.quotes || []).slice(0, 5).map(q => `- "${q.text.substring(0, 150)}${q.text.length > 150 ? '...' : ''}" — ${q.attribution}`).join('\n') || '(none)'}
+
+Propose a 4-6 bullet outline of how the article will be structured. Each bullet is a section: a short section heading followed by a colon and one sentence describing the specific argument or content that section covers. The outline must be specific to THIS research and THIS angle, not a generic template.
+
+Return ONLY the bullets, one per line. No prefix characters (no "-", "*", or numbers). No preamble, no closing, no explanation.`,
+    modelOverride: {
+      model: 'claude-4-5-haiku',
+      temperature: 0.4,
+      maxResponseTokens: 800,
+      preamble: `You are sketching a concrete article outline for Sondra Patton, a content strategist writing for non-technical founders. The outline should sound like the article you'd actually write from this brief. Use specifics from the research. No fluff bullets like "Introduction" or "Conclusion" — every bullet must carry content.
+
+Plain, direct voice. No em dashes. No hype words. No listicle framing.`,
+    },
+  });
+
+  // Parse bullets from the response. Be forgiving: strip list markers, blank
+  // lines, and numeric prefixes. Keep only bullets with real content.
+  const bullets = content
+    .split('\n')
+    .map(line => line.trim())
+    .map(line => line.replace(/^[-*•]\s+/, '').replace(/^\d+[.)]\s+/, '').trim())
+    .filter(line => line.length > 10);
+
+  if (bullets.length === 0) {
+    throw new Error('Outline parse returned no bullets.');
+  }
+
+  return bullets.slice(0, 6);
 }

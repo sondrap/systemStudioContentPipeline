@@ -6,6 +6,11 @@ import { IconLayoutKanban, IconRefresh, IconDots, IconTrash, IconDownload, IconL
 
 const STAGES: { status: ArticleStatus; label: string; dotColor: string }[] = [
   { status: 'researching', label: 'Researching', dotColor: '#365367' },
+  // Angle Review sits between research and drafting. Articles only land here
+  // when Sondra has explicitly sent them back to research — it's her checkpoint
+  // to approve the new angle before drafting burns another cycle. Amber-toned
+  // dot to distinguish from the other stages and signal "action needed from you".
+  { status: 'angle-review', label: 'Angle Check', dotColor: '#B8925B' },
   { status: 'drafting', label: 'Drafting', dotColor: '#577267' },
   { status: 'review', label: 'Review', dotColor: '#ECD8DC' },
   { status: 'published', label: 'Published', dotColor: '#577267' },

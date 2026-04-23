@@ -46,15 +46,20 @@ export async function sendBackToResearch(input: { id: string; revisionNotes: str
     researchBrief: undefined,
   });
 
-  // Fire-and-forget. Same error-handling pattern as startArticle: if the
-  // pipeline dies the article gets flipped back to review with a helpful
-  // message so the user can retry via the Resume button.
+  // Fire-and-forget. Always pause for angle review on this path — if Sondra
+  // is sending it back to research, she's explicitly uncertain about the
+  // angle, and she should approve the next direction before drafting burns
+  // another full cycle.
+  //
+  // If the pipeline dies, the article gets flipped back to review with an
+  // error message so the user can retry via the Resume button.
   runResearchAndDraft(
     input.id,
     article.title,
     article.excerpt || '',
     article.focusKeyword || '',
     input.revisionNotes.trim(),
+    { pauseForAngleReview: true },
   ).catch(async (err) => {
     console.error(`[${input.id}] Re-research pipeline failed:`, err);
     await Articles.update(input.id, {

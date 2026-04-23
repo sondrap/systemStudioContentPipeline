@@ -9,6 +9,7 @@ import { SeoPanel } from '../components/SeoPanel';
 import { SeoCritiquePanel } from '../components/SeoCritiquePanel';
 import { DraftCritiquePanel } from '../components/DraftCritiquePanel';
 import { LinkedInPostsPanel } from '../components/LinkedInPostsPanel';
+import { AngleReviewPanel } from '../components/AngleReviewPanel';
 import { findKeywordPositions } from '../utils/seoScore';
 
 function formatDate(ts?: number) {
@@ -201,8 +202,9 @@ export function ArticlePage() {
   // Send back to research — the angle is off or the existing brief is missing
   // material this rewrite needs (different definitions, different examples,
   // etc.). Re-runs the full research phase with the notes as steering, then
-  // re-drafts. Slower than a regular Send Back but comes back with actually
-  // new raw material instead of remixing what the brief already has.
+  // PAUSES at angle-review so Sondra approves the new direction before a full
+  // draft cycle runs. On submit, redirect back to Pipeline so she's not
+  // staring at an article that's mid-regeneration.
   const handleSendBackToResearch = async () => {
     if (!articleId || !revisionNotes.trim() || sendingBack) return;
     setSendingBack(true);
@@ -211,10 +213,49 @@ export function ArticlePage() {
       updateArticleLocal(articleId, { status: 'researching', revisionNotes: revisionNotes.trim() });
       setShowSendBack(false);
       setRevisionNotes('');
+      // Redirect to Pipeline — the article isn't actionable until research
+      // completes (~2-5 min) and lands at angle-review. The Pipeline shows
+      // progress on the card; ArticlePage would just show a stale body.
+      navigate('/');
     } catch (err: any) {
       alert(err.message || 'Send back to research failed.');
     } finally {
       setSendingBack(false);
+    }
+  };
+
+  // Approve the proposed angle. Flips status to drafting and kicks off the
+  // rest of the pipeline (draft → SEO → images + critiques + LinkedIn).
+  // Redirect to Pipeline since the article is back to auto-running.
+  const [approvingAngle, setApprovingAngle] = useState(false);
+  const [refiningAngle, setRefiningAngle] = useState(false);
+  const handleApproveAngle = async (angleNotes?: string) => {
+    if (!articleId || approvingAngle) return;
+    setApprovingAngle(true);
+    try {
+      await api.approveAngle({ id: articleId, angleNotes });
+      updateArticleLocal(articleId, { status: 'drafting' });
+      navigate('/');
+    } catch (err: any) {
+      alert(err.message || 'Approve angle failed.');
+      setApprovingAngle(false);
+    }
+  };
+
+  // Refine the angle: re-runs research with new steering notes. Article flips
+  // back to 'researching', then pauses at 'angle-review' again so Sondra can
+  // approve the new direction. Redirect to Pipeline — she can't do anything
+  // useful on this article while research runs.
+  const handleRefineAngle = async (newAngleNotes: string) => {
+    if (!articleId || refiningAngle) return;
+    setRefiningAngle(true);
+    try {
+      await api.sendBackToResearch({ id: articleId, revisionNotes: newAngleNotes });
+      updateArticleLocal(articleId, { status: 'researching', revisionNotes: newAngleNotes });
+      navigate('/');
+    } catch (err: any) {
+      alert(err.message || 'Refine failed.');
+      setRefiningAngle(false);
     }
   };
 
@@ -327,6 +368,21 @@ export function ArticlePage() {
           <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>
             <IconArrowLeft size={16} stroke={1.5} /> Pipeline
           </button>
+
+          {/* Angle Review: when the pipeline paused after a re-research pass,
+              the body/hero are stale (old version) so we replace them with the
+              angle review UI. Sondra approves or refines; drafting kicks off
+              only after she greenlights the angle. */}
+          {article.status === 'angle-review' ? (
+            <AngleReviewPanel
+              article={article}
+              onApprove={handleApproveAngle}
+              onRefine={handleRefineAngle}
+              approving={approvingAngle}
+              refining={refiningAngle}
+            />
+          ) : (
+          <>
 
           {/* Hero image */}
           {article.imageUrl ? (
@@ -522,8 +578,19 @@ export function ArticlePage() {
               }}
             />
           )}
+          </>
+          )}
         </div>
       </div>
+
+      {/* During angle-review, everything the user needs lives in the big
+          AngleReviewPanel in the reading column. The metadata sidebar would
+          just show empty SEO/critique/LinkedIn panels (since critiques and
+          LinkedIn posts were cleared when re-research kicked off) and would
+          dilute the focus on the actual decision. Hide both the divider and
+          the sidebar entirely until drafting completes. */}
+      {article.status !== 'angle-review' && (
+      <>
 
       {/* Draggable divider between article body and sidebar. Hit target is
           4px wide but visually a thin 1px border that brightens on hover.
@@ -1156,6 +1223,9 @@ export function ArticlePage() {
         </div>
         {/* END TAB CONTENT AREA */}
       </div>
+
+      </>
+      )}
     </div>
   );
 }

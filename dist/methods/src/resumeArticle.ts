@@ -5,7 +5,7 @@ import { pickImageConcept, renderStillLife } from './common/generateStillLife';
 import { reviewSeoCritique } from './common/seoCritique';
 import { reviewDraftCritique } from './common/draftCritique';
 import { generateAllLinkedInPosts } from './common/linkedInPosts';
-import { startArticle } from './startArticle';
+import { startArticle, runResearchAndDraft } from './startArticle';
 
 // Resume an article stuck in 'drafting' or 'researching' status. Two
 // different failure modes, two different recovery paths:
@@ -43,6 +43,44 @@ export async function resumeArticle(input: { id: string }) {
   }
   if (article.status !== 'drafting' && article.status !== 'researching') {
     throw new Error(`Article is in '${article.status}' status, not stuck. Nothing to resume.`);
+  }
+
+  // Recovery path 4: RE-RESEARCH STUCK. Status is 'researching' AND the
+  // article has both a body (old version, not yet overwritten) AND
+  // revisionNotes set. This is a re-research pass that died before it
+  // completed. Resume should re-fire the re-research with the user's notes
+  // as steering — NOT run post-drafting stages on the stale old body.
+  if (
+    article.status === 'researching' &&
+    article.body &&
+    article.body.length >= 200 &&
+    article.revisionNotes &&
+    article.revisionNotes.trim().length > 0
+  ) {
+    console.log(`[resume] Article ${article.id} is a stuck re-research pass. Re-firing runResearchAndDraft with pauseForAngleReview.`);
+
+    runResearchAndDraft(
+      article.id,
+      article.title,
+      article.excerpt || '',
+      article.focusKeyword || '',
+      article.revisionNotes.trim(),
+      { pauseForAngleReview: true },
+    ).catch(async (err) => {
+      console.error(`[resume] Re-research restart failed for ${article.id}:`, err);
+      await Articles.update(article.id, {
+        status: 'review',
+        revisionNotes: 'Re-research restart failed: ' + (err?.message || 'Unknown error.'),
+      });
+    });
+
+    // Bump updated_at so the stuck detector resets its timer while we work.
+    await Articles.update(article.id, { status: 'researching' });
+
+    return {
+      article: { ...article, status: 'researching' },
+      recovered: { reResearchRestarted: true },
+    } as any;
   }
 
   // Recovery path 2 + 3: body missing means drafting or research died before
