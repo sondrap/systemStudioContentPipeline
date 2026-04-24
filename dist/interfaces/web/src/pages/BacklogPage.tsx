@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import { api, Topic } from '../api';
-import { IconPlus, IconSearch, IconArchive, IconLoader2, IconDots, IconRocket, IconTrash, IconRadar2, IconRefresh, IconTrendingUp, IconKey, IconBolt, IconSend } from '@tabler/icons-react';
+import { IconPlus, IconSearch, IconArchive, IconLoader2, IconDots, IconRocket, IconTrash, IconRadar2, IconRefresh, IconTrendingUp, IconKey, IconBolt, IconSend, IconPencil, IconX } from '@tabler/icons-react';
 import { useLocation } from 'wouter';
 
 function formatDate(ts?: number) {
@@ -29,6 +29,14 @@ export function BacklogPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [refreshing, setRefreshing] = useState<string | null>(null);
+
+  // "Start from Draft" state. Full-screen editor for Sondra to paste her own
+  // rough article. Pipeline polishes + runs all post-drafting stages.
+  const [showDraftEditor, setShowDraftEditor] = useState(false);
+  const [draftTitle, setDraftTitle] = useState('');
+  const [draftBody, setDraftBody] = useState('');
+  const [draftKeyword, setDraftKeyword] = useState('');
+  const [startingDraft, setStartingDraft] = useState(false);
 
   // Filter to backlog topics and sort
   const topics = allTopics
@@ -92,6 +100,37 @@ export function BacklogPage() {
   };
 
   const loadData = useStore((s) => s.loadData);
+
+  // Start from Draft: Sondra pastes her own rough article, pipeline polishes
+  // it via an editor pass (preserving her voice) and runs all post-drafting
+  // stages (SEO, images, critiques, LinkedIn posts). Different entry point
+  // from Add Topic (AI researches and writes from scratch).
+  const handleStartFromDraft = async () => {
+    if (!draftTitle.trim() || !draftBody.trim() || startingDraft) return;
+    if (draftBody.trim().length < 100) {
+      alert('Draft must be at least 100 characters. Paste your full rough article.');
+      return;
+    }
+    setStartingDraft(true);
+    try {
+      const { article } = await api.startFromDraft({
+        title: draftTitle.trim(),
+        draft: draftBody.trim(),
+        focusKeyword: draftKeyword.trim() || undefined,
+      });
+      addArticle(article);
+      // Reset state and close. Redirect to Pipeline so Sondra sees it in flight.
+      setShowDraftEditor(false);
+      setDraftTitle('');
+      setDraftBody('');
+      setDraftKeyword('');
+      navigate('/');
+    } catch (err: any) {
+      alert(err.message || 'Start from Draft failed.');
+    } finally {
+      setStartingDraft(false);
+    }
+  };
 
   const handleRefreshTopic = async (topicId: string) => {
     if (refreshing) return;
@@ -167,6 +206,13 @@ export function BacklogPage() {
           >
             {scanning ? <IconLoader2 size={14} className="spinner" /> : <IconRadar2 size={14} stroke={1.5} />}
             {scanning ? 'Scanning the web...' : 'Scan for Topics'}
+          </button>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => setShowDraftEditor(true)}
+            title="Paste your own rough draft, pipeline polishes and publishes"
+          >
+            <IconPencil size={14} stroke={1.5} /> Start from Draft
           </button>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
             <IconPlus size={14} stroke={2} /> Add Topic
@@ -440,6 +486,184 @@ export function BacklogPage() {
               <button className="btn btn-primary" onClick={handleAdd} disabled={!newTitle.trim() || adding}>
                 {adding ? <IconLoader2 size={14} className="spinner" /> : 'Add Topic'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Start from Draft: full-screen editor. Sondra pastes her own rough
+          article, pipeline polishes and runs all post-drafting stages.
+          Full screen because cramped form fields don't work for long-form
+          writing — this is the primary input for the feature. */}
+      {showDraftEditor && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'var(--background)',
+          zIndex: 100,
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'fadeIn 0.2s ease',
+        }}>
+          {/* Header — compact top bar with title, explanation, and actions */}
+          <div style={{
+            padding: '20px 32px',
+            borderBottom: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 24,
+            background: 'var(--surface)',
+          }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                <IconPencil size={16} stroke={1.5} color="var(--text-secondary)" />
+                <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Start from Draft</h3>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                Paste your rough draft. The pipeline will polish it while preserving your voice, then run SEO, images, critiques, and LinkedIn posts.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  if (draftTitle.trim() || draftBody.trim()) {
+                    if (!confirm('Discard this draft?')) return;
+                  }
+                  setShowDraftEditor(false);
+                  setDraftTitle('');
+                  setDraftBody('');
+                  setDraftKeyword('');
+                }}
+                disabled={startingDraft}
+              >
+                <IconX size={14} stroke={1.5} /> Cancel
+              </button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleStartFromDraft}
+                disabled={!draftTitle.trim() || !draftBody.trim() || draftBody.trim().length < 100 || startingDraft}
+                style={{ minWidth: 160, justifyContent: 'center' }}
+              >
+                {startingDraft ? (
+                  <><IconLoader2 size={14} className="spinner" /> Sending to pipeline...</>
+                ) : (
+                  <>Polish & publish →</>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Body — centered reading column for the draft, feels like the
+              article editor so writing here is pleasant. */}
+          <div style={{
+            flex: 1,
+            overflow: 'auto',
+            padding: '40px 24px 80px',
+          }}>
+            <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+              {/* Title */}
+              <input
+                type="text"
+                value={draftTitle}
+                onChange={(e) => setDraftTitle(e.target.value)}
+                placeholder="Article title"
+                autoFocus
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontFamily: "'Bespoke Serif', serif",
+                  fontSize: 36,
+                  fontWeight: 500,
+                  lineHeight: 1.2,
+                  color: 'var(--text-primary)',
+                  padding: 0,
+                }}
+              />
+
+              {/* Focus keyword — optional, compact row */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                paddingBottom: 20,
+                borderBottom: '1px solid var(--border)',
+              }}>
+                <IconKey size={14} stroke={1.5} color="var(--text-secondary)" />
+                <label style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-secondary)',
+                }}>
+                  Focus keyword
+                </label>
+                <input
+                  type="text"
+                  value={draftKeyword}
+                  onChange={(e) => setDraftKeyword(e.target.value)}
+                  placeholder="Optional — pipeline will pick one if you skip"
+                  style={{
+                    flex: 1,
+                    border: 'none',
+                    outline: 'none',
+                    background: 'transparent',
+                    fontSize: 14,
+                    color: 'var(--text-primary)',
+                    padding: 0,
+                  }}
+                />
+              </div>
+
+              {/* Draft body — large textarea, reading column width */}
+              <textarea
+                value={draftBody}
+                onChange={(e) => setDraftBody(e.target.value)}
+                placeholder={`Paste your rough draft here. Write however you'd write notes to yourself — don't worry about polish. The editor will:
+
+  - Preserve your voice, opinions, and examples
+  - Fix clarity and flow, tighten the prose
+  - Add section headings where useful
+  - Run SEO optimization
+  - Generate images
+  - Create LinkedIn posts
+
+The more of YOU that's in this draft, the better the result.`}
+                style={{
+                  width: '100%',
+                  minHeight: 540,
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontFamily: 'Satoshi, system-ui, sans-serif',
+                  fontSize: 17,
+                  lineHeight: 1.65,
+                  color: 'var(--text-primary)',
+                  resize: 'vertical',
+                  padding: 0,
+                }}
+              />
+
+              {/* Word count indicator — subtle, at the bottom of the column */}
+              {draftBody.length > 0 && (
+                <div style={{
+                  fontSize: 11,
+                  color: 'var(--text-tertiary)',
+                  textAlign: 'right',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                }}>
+                  {draftBody.trim().split(/\s+/).filter(Boolean).length} words
+                  {draftBody.trim().length < 100 && (
+                    <span style={{ marginLeft: 12, color: '#B8925B' }}>
+                      min 100 characters to send
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

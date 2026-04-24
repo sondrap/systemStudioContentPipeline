@@ -77,6 +77,10 @@ export async function startArticle(input: {
 //     angle she's not sold on.
 //   skipResearch: the brief is already in the DB — jump straight to drafting.
 //     Used by approveAngle after Sondra greenlights the angle.
+//   skipToSeo: the article already has a complete body/excerpt/tags (either
+//     written by Sondra herself via startFromDraft, or polished by the editor
+//     pass). Skip research AND drafting, jump straight to SEO optimization,
+//     images, critiques, and LinkedIn posts.
 //
 // When angleNotes is provided, it steers the research AND draft prompts
 // toward the specific take Sondra wants.
@@ -86,7 +90,7 @@ export async function runResearchAndDraft(
   description: string,
   topicKeyword: string = '',
   angleNotes: string = '',
-  options: { pauseForAngleReview?: boolean; skipResearch?: boolean } = {},
+  options: { pauseForAngleReview?: boolean; skipResearch?: boolean; skipToSeo?: boolean } = {},
 ) {
   // `brief` gets populated either by the research phase below or by reading
   // from the DB when skipResearch=true. The draft phase reads from it.
@@ -226,6 +230,32 @@ Be direct and factual. No filler, no em dashes, no emojis in the brief.`,
     console.log(`[${articleId}] Research complete. Starting draft.`);
   }
 
+  // Draft-phase outputs. Declared up front so the skipToSeo branch can
+  // populate them from the existing article record without running the
+  // drafting LLM call at all.
+  let excerpt = '';
+  let body = '';
+  let tags: string[] = [];
+  let ogDescription = '';
+
+  if (options.skipToSeo) {
+    // startFromDraft path: article already has a complete polished body.
+    // Load all the fields the SEO pass needs from the DB and skip drafting.
+    const existing = await Articles.get(articleId);
+    if (!existing) throw new Error('Article not found.');
+    if (!existing.body || existing.body.length < 100) {
+      throw new Error(`[${articleId}] skipToSeo requires a complete body on the article.`);
+    }
+    body = existing.body;
+    excerpt = existing.excerpt || '';
+    tags = existing.tags || [];
+    ogDescription = existing.ogDescription || '';
+    if (!title) title = existing.title;
+    if (!topicKeyword) topicKeyword = existing.focusKeyword || '';
+
+    console.log(`[${articleId}] Skipping research and drafting. Running SEO pass on existing ${body.split(/\s+/).filter(Boolean).length}-word body.`);
+  } else {
+
   // --- DRAFT PHASE ---
 
   // Load Sondra's accumulated editorial preferences (corrections from past
@@ -325,10 +355,7 @@ ogDescription: [max 160 chars for social sharing]`,
 
   // Parse the structured output
   const parts = articleContent.split('---').map((s: string) => s.trim());
-  let excerpt = '';
-  let body = articleContent;
-  let tags: string[] = [];
-  let ogDescription = '';
+  body = articleContent;
 
   if (parts.length >= 3) {
     // Extract excerpt from first section
@@ -365,6 +392,8 @@ ogDescription: [max 160 chars for social sharing]`,
   });
 
   console.log(`[${articleId}] Draft complete (${wordCount} words). Running SEO pass.`);
+
+  } // end else (not skipToSeo)
 
   // --- SEO OPTIMIZATION PASS ---
   const { content: seoContent } = await mindstudio.generateText({

@@ -29,6 +29,7 @@
     { "id": "update-topic", "name": "Update Topic", "path": "dist/methods/src/updateTopic.ts", "export": "updateTopic" },
     { "id": "delete-topic", "name": "Delete Topic", "path": "dist/methods/src/deleteTopic.ts", "export": "deleteTopic" },
     { "id": "start-article", "name": "Start Article", "path": "dist/methods/src/startArticle.ts", "export": "startArticle" },
+    { "id": "start-from-draft", "name": "Start From Draft", "path": "dist/methods/src/startFromDraft.ts", "export": "startFromDraft" },
     { "id": "get-article", "name": "Get Article", "path": "dist/methods/src/getArticle.ts", "export": "getArticle" },
     { "id": "update-article", "name": "Update Article", "path": "dist/methods/src/updateArticle.ts", "export": "updateArticle" },
     { "id": "publish-article", "name": "Publish Article", "path": "dist/methods/src/publishArticle.ts", "export": "publishArticle" },

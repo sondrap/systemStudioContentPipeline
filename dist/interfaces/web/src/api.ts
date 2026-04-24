@@ -110,6 +110,7 @@ export const api = createClient<{
   sendBack(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;
   sendBackToResearch(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;
   approveAngle(input: { id: string; angleNotes?: string }): Promise<{ status: string }>;
+  startFromDraft(input: { title: string; draft: string; focusKeyword?: string }): Promise<{ article: Article }>;
   regenerateImage(input: {
     id: string;
     customConcept?: {
