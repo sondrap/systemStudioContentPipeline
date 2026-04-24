@@ -26,12 +26,16 @@ export interface GeneratedLinkedInPost {
   // AI-fabricated line that sounds like her. Optional because the generator
   // might skip it for stat posts (which use imageNumber + imageLabel).
   imageQuote?: string;
-  // Social card image fields, populated after the image is rendered.
+  // Social card image fields, populated after the image is rendered. Each
+  // post type renders a visually distinct card (quote / stat / headline /
+  // framework / confession); see LinkedInImageType in linkedInImages.ts.
   imageUrl?: string;
-  imageType?: 'quote' | 'stat';
-  imageText?: string;
-  imageNumber?: string;
-  imageLabel?: string;
+  imageType?: 'quote' | 'stat' | 'headline' | 'framework' | 'confession';
+  imageText?: string;         // main prose for quote / headline / confession / framework title
+  imageNumber?: string;       // stat card: the headline number
+  imageLabel?: string;        // stat card: the supporting label
+  imageItems?: string[];      // framework card: 3-4 numbered items
+  imageEyebrow?: string;      // headline / framework: uppercase kicker
 }
 
 interface GeneratorInput {
@@ -213,21 +217,26 @@ export async function generateAllLinkedInPosts(input: GeneratorInput): Promise<G
   const successfulPosts = postResults.filter((p): p is GeneratedLinkedInPost => p !== null);
 
   // Step 2: generate a social card image for each successful post, in
-  // parallel. Failures don't block the post itself — the post is still
-  // useful even without an image.
-  const { generateImageForPost } = await import('./linkedInImages');
+  // parallel. Each post type maps to a visually distinct card (quote,
+  // stat, headline, framework, confession) so the 5 variants don't all
+  // look the same. Failures don't block the post — the post is still
+  // useful without an image.
+  const { generateImageForPost, defaultImageTypeForPost } = await import('./linkedInImages');
   const postsWithImages = await Promise.all(
     successfulPosts.map(async (post) => {
       try {
+        // Only preseed customText for quote cards — it's the article body
+        // verbatim quote, which only fits the quote card format. For
+        // headline / framework / confession / stat, let the image helper
+        // extract the right content from the post itself.
+        const defaultType = defaultImageTypeForPost(post.postType);
+        const customText = defaultType === 'quote' ? post.imageQuote : undefined;
+
         const image = await generateImageForPost({
           postType: post.postType,
           postContent: post.content,
           articleBody: input.articleBody,
-          // Prefer the verbatim quote the generator pulled from the article.
-          // If it's missing (quote didn't validate or generator didn't return
-          // one), the image helper will extract a sensible line from the
-          // article body rather than from the AI-rephrased post content.
-          customText: post.imageQuote,
+          customText,
         });
         return {
           ...post,
@@ -236,6 +245,8 @@ export async function generateAllLinkedInPosts(input: GeneratorInput): Promise<G
           imageText: image.text,
           imageNumber: image.number,
           imageLabel: image.label,
+          imageItems: image.items,
+          imageEyebrow: image.eyebrow,
         };
       } catch (err) {
         console.error(`[linkedInPosts] image generation failed for ${post.postType}:`, err);

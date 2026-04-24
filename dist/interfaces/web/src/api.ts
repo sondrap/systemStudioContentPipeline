@@ -71,10 +71,12 @@ export interface Article {
     postedAt?: number;
     notes?: string;
     imageUrl?: string;
-    imageType?: 'quote' | 'stat';
+    imageType?: 'quote' | 'stat' | 'headline' | 'framework' | 'confession';
     imageText?: string;
     imageNumber?: string;
     imageLabel?: string;
+    imageItems?: string[];
+    imageEyebrow?: string;
   }>;
   created_at: number;
   updated_at: number;
@@ -131,7 +133,10 @@ export const api = createClient<{
     customNumber?: string;
     customLabel?: string;
     direction?: string;
-  }): Promise<{ article: Article; image: { imageUrl: string; imageType: 'quote' | 'stat'; text: string; number?: string; label?: string } }>;
+    customItems?: string[];
+    customEyebrow?: string;
+    imageTypeOverride?: 'quote' | 'stat' | 'headline' | 'framework' | 'confession';
+  }): Promise<{ article: Article; image: { imageUrl: string; imageType: 'quote' | 'stat' | 'headline' | 'framework' | 'confession'; text: string; number?: string; label?: string; items?: string[]; eyebrow?: string } }>;
   listEditorialMemories(input?: { onlyActive?: boolean }): Promise<{
     memories: Array<{
       id: string;

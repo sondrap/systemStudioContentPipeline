@@ -219,10 +219,23 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
   // confessional"). Separate from Edit text, which is full manual override.
   const [showingDirection, setShowingDirection] = useState(false);
   const [directionDraft, setDirectionDraft] = useState('');
-  // Local form state for image text edits before submitting
+  // Local form state for image text edits before submitting. Covers all 5
+  // card types: quote/headline/confession use imageText, stat uses
+  // number+label, framework uses items (one per line in a textarea) + a
+  // title (imageText). Eyebrow kicker is shared by headline and framework.
   const [imageTextDraft, setImageTextDraft] = useState(post.imageText || '');
   const [imageNumberDraft, setImageNumberDraft] = useState(post.imageNumber || '');
   const [imageLabelDraft, setImageLabelDraft] = useState(post.imageLabel || '');
+  const [imageItemsDraft, setImageItemsDraft] = useState((post.imageItems || []).join('\n'));
+  const [imageEyebrowDraft, setImageEyebrowDraft] = useState(post.imageEyebrow || '');
+
+  // Card type override — starts as the current type, lets user switch to any
+  // of the 5 templates. Null/undefined means "use the default for this post
+  // type" (which we also set explicitly on mount so the dropdown reflects
+  // reality).
+  const [imageTypeDraft, setImageTypeDraft] = useState<'quote' | 'stat' | 'headline' | 'framework' | 'confession'>(
+    (post.imageType as any) || 'quote'
+  );
 
   // Sync the local form state when the post's image fields change externally
   // (e.g., regeneration completes)
@@ -230,7 +243,10 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
     setImageTextDraft(post.imageText || '');
     setImageNumberDraft(post.imageNumber || '');
     setImageLabelDraft(post.imageLabel || '');
-  }, [post.imageText, post.imageNumber, post.imageLabel]);
+    setImageItemsDraft((post.imageItems || []).join('\n'));
+    setImageEyebrowDraft(post.imageEyebrow || '');
+    setImageTypeDraft((post.imageType as any) || 'quote');
+  }, [post.imageText, post.imageNumber, post.imageLabel, post.imageItems, post.imageEyebrow, post.imageType]);
 
   // Close the modal on Escape so it feels native
   useEffect(() => {
@@ -337,7 +353,10 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
     customText?: string;
     customNumber?: string;
     customLabel?: string;
+    customItems?: string[];
+    customEyebrow?: string;
     direction?: string;
+    imageTypeOverride?: 'quote' | 'stat' | 'headline' | 'framework' | 'confession';
   }) => {
     setRegeneratingImage(true);
     try {
@@ -514,7 +533,7 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <IconPhoto size={11} stroke={1.8} />
-              {post.imageType === 'stat' ? 'Stat Card' : 'Quote Card'}
+              {imageTypeLabel(post.imageType)}
               <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, opacity: 0.7 }}>· 1080×1080</span>
             </span>
             {!editingImageText && (
@@ -575,7 +594,10 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
             )}
           </a>
 
-          {/* Edit text form (collapsed by default) */}
+          {/* Edit text form (collapsed by default). Top of the form: a card
+              type dropdown so Sondra can swap the visual even when she's
+              happy with the post text. Fields below adapt to the selected
+              type in real time. */}
           {editingImageText && (
             <div style={{
               padding: 10,
@@ -584,9 +606,35 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
               borderRadius: 6,
               display: 'flex',
               flexDirection: 'column',
-              gap: 8,
+              gap: 10,
             }}>
-              {post.imageType === 'stat' ? (
+              {/* Card type picker */}
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 3 }}>
+                  Card style
+                </label>
+                <select
+                  value={imageTypeDraft}
+                  onChange={(e) => setImageTypeDraft(e.target.value as any)}
+                  style={{
+                    width: '100%', padding: '5px 8px',
+                    fontSize: 12, borderRadius: 4,
+                    border: '1px solid var(--border)',
+                    outline: 'none', fontFamily: 'inherit',
+                    background: 'white',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="quote">Quote card — big serif line, centered</option>
+                  <option value="stat">Stat card — big number + label</option>
+                  <option value="headline">Headline card — magazine-cover treatment</option>
+                  <option value="framework">Framework card — numbered list (3–4 items)</option>
+                  <option value="confession">Confession card — quiet indented serif</option>
+                </select>
+              </div>
+
+              {/* Fields specific to the selected card type */}
+              {imageTypeDraft === 'stat' && (
                 <>
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 3 }}>
@@ -623,15 +671,119 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
                     />
                   </div>
                 </>
-              ) : (
+              )}
+
+              {imageTypeDraft === 'framework' && (
+                <>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 3 }}>
+                      Eyebrow kicker (uppercase, short)
+                    </label>
+                    <input
+                      value={imageEyebrowDraft}
+                      onChange={(e) => setImageEyebrowDraft(e.target.value)}
+                      placeholder="A FRAMEWORK"
+                      style={{
+                        width: '100%', padding: '5px 8px',
+                        fontSize: 12, borderRadius: 4,
+                        border: '1px solid var(--border)',
+                        outline: 'none', fontFamily: 'inherit',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 3 }}>
+                      Title
+                    </label>
+                    <input
+                      value={imageTextDraft}
+                      onChange={(e) => setImageTextDraft(e.target.value)}
+                      placeholder="What I check before every post"
+                      style={{
+                        width: '100%', padding: '5px 8px',
+                        fontSize: 12, borderRadius: 4,
+                        border: '1px solid var(--border)',
+                        outline: 'none', fontFamily: 'inherit',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 3 }}>
+                      Items (one per line, 3–4 items)
+                    </label>
+                    <textarea
+                      value={imageItemsDraft}
+                      onChange={(e) => setImageItemsDraft(e.target.value)}
+                      placeholder={`Does the hook earn the scroll-stop?\nIs there a specific, named example?\nWould my ICP forward this to a peer?`}
+                      rows={4}
+                      style={{
+                        width: '100%', padding: '5px 8px',
+                        fontSize: 12, lineHeight: 1.4, borderRadius: 4,
+                        border: '1px solid var(--border)',
+                        outline: 'none', fontFamily: 'inherit',
+                        resize: 'vertical',
+                      }}
+                    />
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                      Each item should be a single short line. Card auto-caps at 4 items.
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {imageTypeDraft === 'headline' && (
+                <>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 3 }}>
+                      Eyebrow kicker (uppercase, short)
+                    </label>
+                    <input
+                      value={imageEyebrowDraft}
+                      onChange={(e) => setImageEyebrowDraft(e.target.value)}
+                      placeholder="HOT TAKE"
+                      style={{
+                        width: '100%', padding: '5px 8px',
+                        fontSize: 12, borderRadius: 4,
+                        border: '1px solid var(--border)',
+                        outline: 'none', fontFamily: 'inherit',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 3 }}>
+                      Headline
+                    </label>
+                    <textarea
+                      value={imageTextDraft}
+                      onChange={(e) => setImageTextDraft(e.target.value)}
+                      placeholder="The sentence that should land as the headline"
+                      rows={3}
+                      style={{
+                        width: '100%', padding: '5px 8px',
+                        fontSize: 12, lineHeight: 1.4, borderRadius: 4,
+                        border: '1px solid var(--border)',
+                        outline: 'none', fontFamily: 'inherit',
+                        resize: 'vertical',
+                      }}
+                    />
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                      Keep it under ~100 characters. Text auto-scales but shorter is punchier.
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {(imageTypeDraft === 'quote' || imageTypeDraft === 'confession') && (
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', display: 'block', marginBottom: 3 }}>
-                    Quote text
+                    {imageTypeDraft === 'quote' ? 'Quote text' : 'Confession text'}
                   </label>
                   <textarea
                     value={imageTextDraft}
                     onChange={(e) => setImageTextDraft(e.target.value)}
-                    placeholder="The single line that should appear as the quote on the card"
+                    placeholder={imageTypeDraft === 'quote'
+                      ? 'The single line that should appear as the quote on the card'
+                      : 'The vulnerable admission, 1-3 sentences'}
                     rows={3}
                     style={{
                       width: '100%', padding: '5px 8px',
@@ -642,7 +794,9 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
                     }}
                   />
                   <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3 }}>
-                    Keep it under ~220 characters. Shorter quotes look more impactful.
+                    {imageTypeDraft === 'quote'
+                      ? 'Keep it under ~220 characters. Shorter quotes look more impactful.'
+                      : 'Keep it under ~240 characters. Card auto-scales for longer prose.'}
                   </div>
                 </div>
               )}
@@ -650,14 +804,27 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
               <div style={{ display: 'flex', gap: 6 }}>
                 <button
                   onClick={() => {
-                    if (post.imageType === 'stat') {
-                      handleRegenerateImage({
-                        customNumber: imageNumberDraft.trim(),
-                        customLabel: imageLabelDraft.trim(),
-                      });
+                    const overrides: Parameters<typeof handleRegenerateImage>[0] = {
+                      imageTypeOverride: imageTypeDraft,
+                    };
+                    if (imageTypeDraft === 'stat') {
+                      overrides.customNumber = imageNumberDraft.trim();
+                      overrides.customLabel = imageLabelDraft.trim();
+                    } else if (imageTypeDraft === 'framework') {
+                      overrides.customText = imageTextDraft.trim();
+                      overrides.customEyebrow = imageEyebrowDraft.trim();
+                      overrides.customItems = imageItemsDraft
+                        .split('\n')
+                        .map(s => s.trim())
+                        .filter(Boolean);
+                    } else if (imageTypeDraft === 'headline') {
+                      overrides.customText = imageTextDraft.trim();
+                      overrides.customEyebrow = imageEyebrowDraft.trim();
                     } else {
-                      handleRegenerateImage({ customText: imageTextDraft.trim() });
+                      // quote or confession
+                      overrides.customText = imageTextDraft.trim();
                     }
+                    handleRegenerateImage(overrides);
                   }}
                   disabled={regeneratingImage}
                   style={{
@@ -679,10 +846,13 @@ function PostVariantCard({ post, articleId }: { post: LinkedInPost; articleId: s
                 <button
                   onClick={() => {
                     setEditingImageText(false);
-                    // Reset to original values
+                    // Reset all draft fields back to the post's current values
                     setImageTextDraft(post.imageText || '');
                     setImageNumberDraft(post.imageNumber || '');
                     setImageLabelDraft(post.imageLabel || '');
+                    setImageItemsDraft((post.imageItems || []).join('\n'));
+                    setImageEyebrowDraft(post.imageEyebrow || '');
+                    setImageTypeDraft((post.imageType as any) || 'quote');
                   }}
                   style={{
                     padding: '6px 10px',
@@ -1226,3 +1396,16 @@ const actionButtonStyle = {
   cursor: 'pointer' as const,
   transition: 'all 150ms',
 };
+
+// Human label for the card type. Shown in the panel so Sondra can tell at a
+// glance which of the 5 templates is currently rendering on each post.
+function imageTypeLabel(imageType?: string): string {
+  switch (imageType) {
+    case 'stat':       return 'Stat Card';
+    case 'headline':   return 'Headline Card';
+    case 'framework':  return 'Framework Card';
+    case 'confession': return 'Confession Card';
+    case 'quote':
+    default:           return 'Quote Card';
+  }
+}

@@ -84,10 +84,18 @@ interface Article {
     // imageLabel) reflect what's CURRENTLY shown on the image, so the user
     // can edit them and regenerate.
     imageUrl?: string;
-    imageType?: 'quote' | 'stat';
-    imageText?: string;            // for quote cards: the quote currently rendered
+    // Five card types for visual variety across the 5 post variants. Each
+    // has its own fields for what's rendered:
+    //   quote / headline / confession: imageText holds the main prose
+    //   stat: imageNumber + imageLabel
+    //   framework: imageItems holds the numbered list, imageText the title
+    //   headline / framework: imageEyebrow holds the uppercase kicker
+    imageType?: 'quote' | 'stat' | 'headline' | 'framework' | 'confession';
+    imageText?: string;            // main prose: quote, hook, confession prose, or framework title
     imageNumber?: string;          // for stat cards: the headline number
     imageLabel?: string;           // for stat cards: the supporting label
+    imageItems?: string[];         // for framework cards: 3-4 numbered items
+    imageEyebrow?: string;         // for headline / framework cards: the uppercase kicker
     // Verbatim quote pulled from the article body by the LinkedIn generator.
     // Distinct from imageText (which reflects whatever is on the card right
     // now — could be AI-picked or user-edited). Used as the "preferred

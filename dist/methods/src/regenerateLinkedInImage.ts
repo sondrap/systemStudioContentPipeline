@@ -1,6 +1,6 @@
 import { auth } from '@mindstudio-ai/agent';
 import { Articles } from './tables/articles';
-import { generateImageForPost } from './common/linkedInImages';
+import { generateImageForPost, LinkedInImageType } from './common/linkedInImages';
 import { withDbRetry } from './common/retry';
 
 // Regenerate ONLY the social card image for a LinkedIn post variant —
@@ -15,16 +15,24 @@ import { withDbRetry } from './common/retry';
 export async function regenerateLinkedInImage(input: {
   articleId: string;
   variantId: string;
-  // Optional overrides for the image content. For quote cards: customText.
-  // For stat cards: customNumber + customLabel.
+  // Optional overrides for the image content.
+  //   quote / headline / confession: customText replaces the main text
+  //   stat: customNumber + customLabel
+  //   framework: customItems (array of 3-4 short lines), customText for title
+  //   headline / framework: customEyebrow for the uppercase kicker
   customText?: string;
   customNumber?: string;
   customLabel?: string;
-  // Free-text direction for the AI quote picker. When provided and no
-  // customText, AI picks a verbatim quote from the article body based on
-  // this guidance. Examples: "focus on the pricing angle", "pick something
-  // more personal/confessional", "find the contrarian claim".
+  customItems?: string[];
+  customEyebrow?: string;
+  // Free-text direction for the AI quote picker (quote cards only). When
+  // provided and no customText, AI picks a verbatim quote from the article
+  // body based on this guidance. Examples: "focus on the pricing angle",
+  // "pick something more personal/confessional", "find the contrarian claim".
   direction?: string;
+  // Force a specific card type different from the post-type default. Lets
+  // Sondra swap a quote card for a headline, a framework for a quote, etc.
+  imageTypeOverride?: LinkedInImageType;
 }) {
   auth.requireRole('admin');
 
@@ -50,8 +58,11 @@ export async function regenerateLinkedInImage(input: {
     customText: input.customText,
     customNumber: input.customNumber,
     customLabel: input.customLabel,
+    customItems: input.customItems,
+    customEyebrow: input.customEyebrow,
     direction: input.direction,
     excludeQuotes,
+    imageTypeOverride: input.imageTypeOverride,
   });
 
   const updatedVariants = variants.map(v =>
@@ -63,6 +74,8 @@ export async function regenerateLinkedInImage(input: {
           imageText: image.text,
           imageNumber: image.number,
           imageLabel: image.label,
+          imageItems: image.items,
+          imageEyebrow: image.eyebrow,
         }
       : v
   );
