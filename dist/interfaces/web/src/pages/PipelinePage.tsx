@@ -155,7 +155,7 @@ function ArticleCard({ article }: { article: Article }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: menuOpen ? 'var(--background)' : 'transparent',
+            background: menuOpen ? 'var(--bg)' : 'transparent',
             border: 'none',
             color: 'var(--text-secondary)',
             cursor: 'pointer',

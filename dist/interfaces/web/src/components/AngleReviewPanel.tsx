@@ -98,7 +98,7 @@ export function AngleReviewPanel({
           <div
             style={{
               padding: 14,
-              background: 'var(--background)',
+              background: 'var(--bg)',
               borderRadius: 10,
               border: '1px solid var(--border)',
               fontSize: 14,
@@ -153,7 +153,7 @@ export function AngleReviewPanel({
                       width: 22,
                       height: 22,
                       borderRadius: '50%',
-                      background: 'var(--background)',
+                      background: 'var(--bg)',
                       border: '1px solid var(--border)',
                       display: 'flex',
                       alignItems: 'center',

@@ -499,11 +499,10 @@ export function BacklogPage() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'var(--background)',
+          background: 'var(--bg)',
           zIndex: 100,
           display: 'flex',
           flexDirection: 'column',
-          animation: 'fadeIn 0.2s ease',
         }}>
           {/* Header — compact top bar with title, explanation, and actions */}
           <div style={{
