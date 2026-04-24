@@ -5,6 +5,7 @@ import { api, Article } from '../api';
 import { IconArrowLeft, IconLoader2, IconCheck, IconExternalLink, IconPhoto, IconTrash, IconPencil, IconHighlight, IconUsers, IconEye, IconCode, IconCloudOff, IconCloudUpload, IconBrandLinkedin } from '@tabler/icons-react';
 import { Streamdown } from 'streamdown';
 import TextareaAutosize from 'react-textarea-autosize';
+import { ImageUploader } from '../components/ImageUploader';
 import { SeoPanel } from '../components/SeoPanel';
 import { SeoCritiquePanel } from '../components/SeoCritiquePanel';
 import { DraftCritiquePanel } from '../components/DraftCritiquePanel';
@@ -89,6 +90,15 @@ export function ArticlePage() {
   const [isDraggingSidebar, setIsDraggingSidebar] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  // Ref to the body textarea so "Insert Image" can drop a markdown image tag
+  // at the cursor position (or at the end if the textarea isn't focused).
+  const bodyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Short-lived error message for hero image upload failures. Lives in an
+  // inline banner above the hero rather than alert() so it doesn't steal
+  // focus while Sondra is writing.
+  const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
+
   // Initialize from article
   useEffect(() => {
     if (article) {
@@ -169,6 +179,65 @@ export function ArticlePage() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => debouncedSave(body, val), 2000);
   };
+
+  // Insert a markdown image tag at the textarea cursor position. If the
+  // textarea isn't focused (or we can't get its selection range), append the
+  // image tag to the end of the body with a double newline in front so it
+  // lands on its own line.
+  //
+  // Called when Sondra uploads an image via the "Insert Image" button above
+  // the body. The uploaded CDN URL is dropped into the body as:
+  //
+  //    ![](https://i.mscdn.ai/...)
+  //
+  // Alt text is left empty — she can fill it in by editing the markdown
+  // directly. The body save debounces normally, so the insert persists.
+  const handleInsertImageIntoBody = useCallback((url: string) => {
+    const textarea = bodyTextareaRef.current;
+    const markdown = `\n\n![](${url})\n\n`;
+
+    if (textarea && typeof textarea.selectionStart === 'number') {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newBody = body.substring(0, start) + markdown + body.substring(end);
+      setBody(newBody);
+      setSaveStatus('unsaved');
+
+      // Position cursor right after the inserted markdown, using requestAnimationFrame
+      // so React has time to flush the new value before we move the selection.
+      requestAnimationFrame(() => {
+        const caret = start + markdown.length;
+        textarea.focus();
+        textarea.setSelectionRange(caret, caret);
+      });
+
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => debouncedSave(newBody, title), 2000);
+    } else {
+      // Fallback: append to end.
+      const newBody = body.endsWith('\n\n') ? body + `![](${url})\n\n` : body + markdown;
+      setBody(newBody);
+      setSaveStatus('unsaved');
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => debouncedSave(newBody, title), 2000);
+    }
+  }, [body, title, debouncedSave]);
+
+  // Replace the hero image with an uploaded CDN URL. Saves directly to the
+  // server rather than going through the debounced autosave, since images
+  // are a bigger deal than a typing change and the user expects immediate
+  // confirmation.
+  const handleUploadHero = useCallback(async (url: string) => {
+    if (!articleId) return;
+    setHeroUploadError(null);
+    try {
+      const { article: updated } = await api.updateArticle({ id: articleId, imageUrl: url });
+      updateArticleLocal(articleId, updated);
+    } catch (err: any) {
+      console.error('Hero upload save failed:', err);
+      setHeroUploadError(err?.message || 'Failed to save the new hero image.');
+    }
+  }, [articleId, updateArticleLocal]);
 
   const handlePublish = async () => {
     if (!articleId || publishing) return;
@@ -384,14 +453,66 @@ export function ArticlePage() {
           ) : (
           <>
 
-          {/* Hero image */}
+          {/* Hero image. Either the actual image (AI-generated or uploaded)
+              with hover controls, or an empty dashed placeholder with
+              Generate/Upload options. */}
+          {heroUploadError && (
+            <div style={{
+              marginBottom: 12,
+              padding: '8px 12px',
+              background: 'rgba(220, 100, 80, 0.08)',
+              border: '1px solid rgba(220, 100, 80, 0.25)',
+              borderRadius: 8,
+              fontSize: 13,
+              color: 'var(--text-primary)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <span>{heroUploadError}</span>
+              <button
+                onClick={() => setHeroUploadError(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 16, lineHeight: 1 }}
+                aria-label="Dismiss error"
+              >×</button>
+            </div>
+          )}
           {article.imageUrl ? (
-            <div style={{ marginBottom: 24, borderRadius: 16, overflow: 'hidden', aspectRatio: '1200/630', background: 'var(--border)' }}>
+            <div
+              style={{ position: 'relative', marginBottom: 24, borderRadius: 16, overflow: 'hidden', aspectRatio: '1200/630', background: 'var(--border)' }}
+              className="hero-image-container"
+            >
               <img
                 src={`${article.imageUrl}?w=1200&dpr=2&fm=webp`}
                 alt={article.coverImageAlt || article.title}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
+              {/* Hover overlay with "Upload replacement" option. Sits over the
+                  image, fades in on hover. Doesn't interfere with the image
+                  when Sondra is just reading. */}
+              <div
+                className="hero-image-overlay"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 40%)',
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  justifyContent: 'flex-end',
+                  padding: 16,
+                  opacity: 0,
+                  transition: 'opacity 0.2s ease',
+                  pointerEvents: 'none',
+                }}
+              >
+                <div style={{ display: 'flex', gap: 8, pointerEvents: 'auto' }}>
+                  <ImageUploader
+                    onUploaded={handleUploadHero}
+                    onError={(err) => setHeroUploadError(err)}
+                    label="Upload replacement"
+                  />
+                </div>
+              </div>
             </div>
           ) : (
             <div style={{
@@ -404,12 +525,19 @@ export function ArticlePage() {
               alignItems: 'center',
               justifyContent: 'center',
               flexDirection: 'column',
-              gap: 8,
+              gap: 12,
             }}>
               <IconPhoto size={32} stroke={1} color="var(--text-tertiary)" />
-              <button className="btn btn-ghost btn-sm" onClick={() => handleRegenerateImage()} disabled={regenerating}>
-                {regenerating ? <><IconLoader2 size={14} className="spinner" /> Generating...</> : 'Generate Image'}
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => handleRegenerateImage()} disabled={regenerating}>
+                  {regenerating ? <><IconLoader2 size={14} className="spinner" /> Generating...</> : 'Generate Image'}
+                </button>
+                <ImageUploader
+                  onUploaded={handleUploadHero}
+                  onError={(err) => setHeroUploadError(err)}
+                  label="Upload image"
+                />
+              </div>
             </div>
           )}
 
@@ -556,27 +684,53 @@ export function ArticlePage() {
               </button>
             </div>
           ) : (
-            <TextareaAutosize
-              value={body}
-              onChange={handleBodyChange}
-              placeholder="Start writing, or wait for the AI to draft..."
-              minRows={20}
-              // TextareaAutosize measures scrollHeight on every value change
-              // and sets the height to match, so word-wrapped long paragraphs
-              // are fully visible. No manual \n counting or overflow clipping.
-              style={{
-                width: '100%',
-                fontFamily: "'Satoshi', sans-serif",
-                fontSize: 17,
-                fontWeight: 400,
-                lineHeight: 1.65,
-                color: 'var(--text-primary)',
-                border: 'none',
-                background: 'transparent',
-                outline: 'none',
-                resize: 'none',
-              }}
-            />
+            <div>
+              {/* Body editor toolbar. Sits above the textarea as a thin row
+                  with utilities that work on the body text. Currently just
+                  Insert Image, but a natural home for future tools (tables,
+                  links, etc.) without cluttering the reading area. */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  paddingBottom: 10,
+                  marginBottom: 10,
+                  borderBottom: '1px solid var(--border)',
+                }}
+              >
+                <ImageUploader
+                  onUploaded={handleInsertImageIntoBody}
+                  onError={(err) => alert(err)}
+                  label="Insert Image"
+                />
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                  Drops into the body at your cursor
+                </span>
+              </div>
+              <TextareaAutosize
+                ref={bodyTextareaRef}
+                value={body}
+                onChange={handleBodyChange}
+                placeholder="Start writing, or wait for the AI to draft..."
+                minRows={20}
+                // TextareaAutosize measures scrollHeight on every value change
+                // and sets the height to match, so word-wrapped long paragraphs
+                // are fully visible. No manual \n counting or overflow clipping.
+                style={{
+                  width: '100%',
+                  fontFamily: "'Satoshi', sans-serif",
+                  fontSize: 17,
+                  fontWeight: 400,
+                  lineHeight: 1.65,
+                  color: 'var(--text-primary)',
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none',
+                  resize: 'none',
+                }}
+              />
+            </div>
           )}
           </>
           )}
@@ -1039,11 +1193,18 @@ export function ArticlePage() {
               and "Regenerate" depending on whether an image exists yet. This
               catches the case where drafting failed to produce an image and
               the user has no way to trigger one otherwise. */}
-          <button className="btn btn-ghost btn-sm" onClick={() => handleRegenerateImage()} disabled={regenerating} style={{ width: '100%' }}>
-            {regenerating
-              ? <><IconLoader2 size={14} className="spinner" /> Generating...</>
-              : article.imageUrl ? 'Regenerate Image' : 'Generate Image'}
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => handleRegenerateImage()} disabled={regenerating} style={{ flex: 1 }}>
+              {regenerating
+                ? <><IconLoader2 size={14} className="spinner" /> Generating...</>
+                : article.imageUrl ? 'Regenerate Image' : 'Generate Image'}
+            </button>
+            <ImageUploader
+              onUploaded={handleUploadHero}
+              onError={(err) => setHeroUploadError(err)}
+              label="Upload"
+            />
+          </div>
 
           {article.status === 'review' && !published && (
             <>

@@ -17,6 +17,10 @@ export async function updateArticle(input: {
   coverImageAlt?: string;
   focusKeyword?: string;
   slug?: string;
+  // Hero image override. Set when Sondra uploads her own image via the
+  // custom upload flow, or passes an existing CDN URL. Cleared by setting to
+  // an empty string to revert to "no image" state.
+  imageUrl?: string;
 }) {
   auth.requireRole('admin');
 
@@ -28,6 +32,7 @@ export async function updateArticle(input: {
     'title', 'subtitle', 'body', 'excerpt', 'status',
     'seoKeywords', 'metaDescription', 'ogDescription',
     'tags', 'articleType', 'coverImageAlt', 'focusKeyword', 'slug',
+    'imageUrl',
   ] as const;
 
   for (const field of fields) {

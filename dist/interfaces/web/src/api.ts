@@ -104,7 +104,7 @@ export const api = createClient<{
   deleteTopic(input: { id: string }): Promise<{ deleted: boolean }>;
   startArticle(input: { topicId?: string; title?: string; description?: string; articleType?: ArticleType }): Promise<{ article: Article }>;
   getArticle(input: { id: string }): Promise<{ article: Article }>;
-  updateArticle(input: { id: string; title?: string; body?: string; excerpt?: string; status?: ArticleStatus; seoKeywords?: string[]; tags?: string[]; articleType?: ArticleType; focusKeyword?: string; ogDescription?: string; metaDescription?: string; slug?: string }): Promise<{ article: Article }>;
+  updateArticle(input: { id: string; title?: string; body?: string; excerpt?: string; status?: ArticleStatus; seoKeywords?: string[]; tags?: string[]; articleType?: ArticleType; focusKeyword?: string; ogDescription?: string; metaDescription?: string; slug?: string; imageUrl?: string; coverImageAlt?: string }): Promise<{ article: Article }>;
   publishArticle(input: { id: string }): Promise<{ article: Article }>;
   unpublishArticle(input: { id: string }): Promise<{ article: Article; dryRun?: boolean; wasAlreadyMissing?: boolean }>;
   sendBack(input: { id: string; revisionNotes: string }): Promise<{ status: string }>;

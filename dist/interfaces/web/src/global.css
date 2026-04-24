@@ -158,3 +158,21 @@ body {
   padding: 2px 6px;
   border-radius: 4px;
 }
+
+/* Hero image: show the "Upload replacement" overlay on hover so the control
+ * is discoverable without cluttering the clean image view when the user is
+ * just reading. Overlay fades in smoothly. */
+.hero-image-container:hover .hero-image-overlay {
+  opacity: 1;
+}
+
+/* Inline images inserted into the body render at full reading-column width
+ * with a modest border radius to match the rest of the editor's visual
+ * language. */
+.article-preview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  margin: 1.5em 0;
+  display: block;
+}
